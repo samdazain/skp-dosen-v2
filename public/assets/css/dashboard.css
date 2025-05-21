@@ -1,0 +1,64 @@
+/* Upload file components styling */
+.upload-indicator {
+    cursor: pointer;
+}
+
+.upload-icon-container {
+    position: relative;
+    display: inline-block;
+}
+
+.upload-arrow {
+    bottom: -5px;
+    right: -5px;
+    font-size: 1.5rem;
+    filter: drop-shadow(0px 0px 1px white);
+}
+
+.custom-file-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    background-color: #f8f9fa;
+    transition: background-color 0.2s;
+}
+
+.custom-file-label:hover {
+    background-color: #e9ecef;
+}
+
+.custom-file-label::after {
+    content: "Browse";
+}
+
+/* Pulsing effect animation */
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.upload-indicator:hover .upload-arrow {
+    animation: pulse 1.5s infinite;
+}
+
+/* File input styling */
+.custom-file {
+    cursor: pointer;
+}
+
+.custom-file-input {
+    cursor: pointer;
+}
