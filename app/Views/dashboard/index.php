@@ -1,7 +1,8 @@
 <?php
-// Fix data extraction from controller
-// The data is already available directly in the view scope, no need for this
-// if (!empty($data)) extract($data);
+
+/**
+ * @var CodeIgniter\View\View $this
+ */
 ?>
 <?= $this->extend('layout/admin_layout') ?>
 
@@ -10,8 +11,9 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
+
 <!-- Content Header -->
-<?= $this->include('components/content_header', [
+<?= view('components/content_header', [
     'header_title' => 'Dashboard SKP Dosen',
     'breadcrumbs' => [
         ['text' => 'Home', 'url' => 'dashboard'],
@@ -24,7 +26,7 @@
     <div class="container-fluid">
         <!-- Info boxes -->
         <div class="row">
-            <?= $this->include('dashboard/partials/info_box', [
+            <?= view('dashboard/partials/info_box', [
                 'icon' => 'fas fa-users',
                 'bg_color' => 'bg-primary',
                 'title' => 'Jumlah Dosen',
@@ -36,7 +38,7 @@
         <!-- Main Cards -->
         <div class="row">
             <!-- Upload Data Cards -->
-            <?= view_cell('App\\Cells\\Dashboard::show', [
+            <?= view('dashboard/partials/upload_card', [
                 'title' => 'Upload Data Dosen',
                 'icon' => 'fas fa-upload',
                 'card_class' => 'card-primary',
@@ -48,7 +50,7 @@
                 'download_url' => '#'
             ]) ?>
 
-            <?= view_cell('App\Cells\Dashboard::show', [
+            <?= view('dashboard/partials/upload_card', [
                 'title' => 'Upload Data Integritas',
                 'icon' => 'fas fa-shield-alt',
                 'card_class' => 'card-success',
@@ -60,7 +62,7 @@
                 'download_url' => '#'
             ]) ?>
 
-            <?= view_cell('App\Cells\Dashboard::show', [
+            <?= view('dashboard/partials/upload_card', [
                 'title' => 'Upload Data Disiplin',
                 'icon' => 'fas fa-tasks',
                 'card_class' => 'card-info',
@@ -72,7 +74,7 @@
                 'download_url' => '#'
             ]) ?>
 
-            <?= view_cell('App\Cells\Dashboard::show', [
+            <?= view('dashboard/partials/upload_card', [
                 'title' => 'Upload Data Orientasi Pelayanan',
                 'icon' => 'fas fa-concierge-bell',
                 'card_class' => 'card-warning',
@@ -85,7 +87,7 @@
             ]) ?>
 
             <!-- Action Cards -->
-            <?= $this->include('dashboard/partials/action_card', [
+            <?= view('dashboard/partials/action_card', [
                 'title' => 'Penilaian Komitmen',
                 'icon' => 'fas fa-handshake',
                 'card_class' => 'card-danger',
@@ -96,7 +98,7 @@
                 'button_text' => 'Buka Penilaian'
             ]) ?>
 
-            <?= $this->include('dashboard/partials/action_card', [
+            <?= view('dashboard/partials/action_card', [
                 'title' => 'Penilaian Kerjasama',
                 'icon' => 'fas fa-users',
                 'card_class' => 'card-dark',
@@ -108,8 +110,8 @@
             ]) ?>
         </div>
 
-        <!-- Recent Activity -->
-        <?= $this->include('dashboard/partials/activity_log', [
+        <!-- Rest of the code remains the same -->
+        <?= view('dashboard/partials/activity_log', [
             'activities' => [
                 [
                     'date' => date('d M Y H:i'),

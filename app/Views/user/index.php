@@ -1,3 +1,9 @@
+<?php
+
+/**
+ * @var CodeIgniter\View\View $this
+ */
+?>
 <?= $this->extend('layout/admin_layout') ?>
 
 <?= $this->section('content') ?>

@@ -2,51 +2,51 @@
 
 namespace App\Controllers;
 
+use App\Models\SkpModel;
+
 class SKPController extends BaseController
 {
-    /**
-     * Display SKP master view with all lecturer assessments
-     */
+    protected $skpModel;
+
+    public function __construct()
+    {
+        $this->skpModel = new SkpModel();
+    }
+
     public function index()
     {
-        // Ensure user is logged in
-        if (!session()->get('isLoggedIn')) {
-            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        $rawData = $this->skpModel->getDummyData();
+
+        // Process data for view display
+        $processedData = [];
+        foreach ($rawData as $item) {
+            $total = $this->skpModel->calculateTotal($item);
+            list($category, $badgeColor) = $this->skpModel->getCategory($total);
+
+            $item['total'] = $total;
+            $item['category'] = $category;
+            $item['badge_color'] = $badgeColor;
+            $processedData[] = $item;
         }
 
-        $userData = [
-            'name' => session()->get('user_name'),
-            'role' => session()->get('user_role'),
-        ];
-
-        // In a real application, you would load models and get data from database
-        // For now, we'll just display the view with dummy data
+        $stats = $this->skpModel->getSummaryStats($rawData);
 
         return view('skp/index', [
-            'pageTitle' => 'Data SKP Dosen | SKP Dosen',
-            'user' => $userData
+            'pageTitle' => 'Data Master SKP | SKP Dosen',
+            'lecturers' => $processedData,
+            'stats' => $stats
         ]);
     }
 
-    /**
-     * Export SKP data to Excel format
-     */
     public function exportExcel()
     {
-        // In a real application, you would generate Excel file
-        // For now, we'll just redirect with a success message
-
-        return redirect()->to('skp')->with('success', 'Data SKP berhasil diekspor ke Excel');
+        // Excel export logic
+        return redirect()->to('skp')->with('success', 'Data berhasil diekspor ke Excel');
     }
 
-    /**
-     * Export SKP data to PDF format
-     */
     public function exportPdf()
     {
-        // In a real application, you would generate PDF file
-        // For now, we'll just redirect with a success message
-
-        return redirect()->to('skp')->with('success', 'Data SKP berhasil diekspor ke PDF');
+        // PDF export logic
+        return redirect()->to('skp')->with('success', 'Data berhasil diekspor ke PDF');
     }
 }

@@ -1,17 +1,21 @@
 <?php
 
 use CodeIgniter\Router\RouteCollection;
+use App\Controllers\AuthController;
+use App\Controllers\DashboardController;
+use App\Controllers\TestDBConnection;
+
 
 /**
  * @var RouteCollection $routes
  */
 
 // Public Routes
-$routes->get('/test-db', 'TestDBConnection::index');
-$routes->get('/', 'DashboardController::index');
-$routes->get('/login', 'AuthController::index');
-$routes->post('/login', 'AuthController::login');
-$routes->get('/logout', 'AuthController::logout');
+$routes->get('/test-db', [TestDBConnection::class, 'index']);
+$routes->get('/', [DashboardController::class, 'index']);
+$routes->get('/login', [AuthController::class, 'index']);
+$routes->post('/login', [AuthController::class, 'login']);
+$routes->get('/logout', [AuthController::class, 'logout']);
 
 // Protected Routes (Require Authentication)
 $routes->group('', ['filter' => 'auth'], static function ($routes) {

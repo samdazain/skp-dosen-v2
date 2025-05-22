@@ -1,0 +1,35 @@
+    .file-upload-trigger {
+        cursor: pointer;
+        border: 2px dashed #ccc;
+        border-radius: 5px;
+        padding: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .file-upload-trigger:hover {
+        border-color: #007bff;
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+
+    .file-upload-trigger.file-selected {
+        border-color: #28a745;
+        background-color: rgba(40, 167, 69, 0.05);
+    }
+
+    .file-name-display {
+        font-weight: bold;
+        color: #28a745;
+        word-break: break-all;
+        cursor: pointer;
+    }
+
+    .file-name-display:hover {
+        text-decoration: line-through;
+        color: #dc3545;
+    }
+
+    .upload-arrow {
+        right: -5px;
+        bottom: -5px;
+        font-size: 1.5rem;
+    }
