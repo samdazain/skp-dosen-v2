@@ -79,19 +79,6 @@
             }
         });
 
-        // Add form submission debugging
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function(event) {
-            console.log('Form being submitted...');
-
-            const formData = new FormData(this);
-            console.log('Form data:');
-            for (let [key, value] of formData.entries()) {
-                console.log(`${key}: ${value}`);
-            }
-
-            // Don't prevent default - let the form submit normally
-        });
     });
 </script>
 <?= $this->endSection() ?>
