@@ -3,11 +3,10 @@
 /**
  * @var CodeIgniter\View\View $this
  */
-?>
 
-<?= $this->section('styles') ?>
-<link rel="stylesheet" href="<?= base_url('assets/css/upload_card.css') ?>">
-<?= $this->endSection() ?>
+// Generate a consistent form ID based on the input ID to avoid random IDs
+$formId = 'uploadForm_' . ($input_id ?? 'fileInput');
+?>
 
 <div class="col-md-4">
     <div class="card <?= $card_class ?? 'card-primary' ?>">
@@ -18,11 +17,11 @@
         </div>
         <div class="card-body">
             <form action="<?= base_url($upload_url ?? '#') ?>" method="post" enctype="multipart/form-data"
-                id="<?= $form_id ?? 'uploadForm' . rand(1000, 9999) ?>">
+                id="<?= $formId ?>">
                 <?= csrf_field() ?>
 
                 <div class="upload-indicator text-center mb-3 file-upload-trigger"
-                    id="<?= 'trigger_' . ($input_id ?? 'fileInput') ?>">
+                    id="trigger_<?= $input_id ?? 'fileInput' ?>">
                     <div class="upload-icon-container position-relative">
                         <i class="fas fa-file-excel fa-3x text-success"></i>
                         <i
@@ -51,55 +50,87 @@
     </div>
 </div>
 
+<!-- Move script to the end of the document and make it self-contained -->
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Get the form ID dynamically
-        const formId = '<?= $form_id ?? 'uploadForm' . rand(1000, 9999) ?>';
-        const form = document.getElementById(formId);
+    // Use an immediately invoked function expression to avoid global scope pollution
+    (function() {
+        // This function will run once the DOM is fully loaded
+        function initUploadCard() {
+            // Use a consistent form ID based on input ID
+            const formId = '<?= $formId ?>';
+            const form = document.getElementById(formId);
 
-        // Get elements
-        const triggerId = '<?= 'trigger_' . ($input_id ?? 'fileInput') ?>';
-        const trigger = document.getElementById(triggerId);
-        const fileInput = form.querySelector('.file-input');
-        const fileInstruction = form.querySelector('.file-instruction');
-        const fileNameDisplay = form.querySelector('.file-name-display');
-        const uploadBtn = form.querySelector('.upload-btn');
-
-        // Add click event to the upload trigger area
-        trigger.addEventListener('click', function() {
-            fileInput.click();
-        });
-
-        // Show file name when a file is selected
-        fileInput.addEventListener('change', function() {
-            if (this.files && this.files[0]) {
-                const fileName = this.files[0].name;
-                fileInstruction.classList.add('d-none');
-                fileNameDisplay.textContent = fileName;
-                fileNameDisplay.classList.remove('d-none');
-                uploadBtn.removeAttribute('disabled');
-
-                // Add a visual indicator that file is selected
-                trigger.classList.add('file-selected');
-            } else {
-                resetFileDisplay();
+            // Defensive programming: Check if form exists
+            if (!form) {
+                console.error(`Form with ID ${formId} not found.`);
+                return; // Exit if form not found
             }
-        });
 
-        // Reset the file display when needed
-        function resetFileDisplay() {
-            fileInstruction.classList.remove('d-none');
-            fileNameDisplay.classList.add('d-none');
-            fileNameDisplay.textContent = '';
-            uploadBtn.setAttribute('disabled', 'disabled');
-            trigger.classList.remove('file-selected');
+            // Get elements
+            const triggerId = 'trigger_<?= $input_id ?? 'fileInput' ?>';
+            const trigger = document.getElementById(triggerId);
+
+            // More defensive checks
+            if (!trigger) {
+                console.error(`Trigger with ID ${triggerId} not found.`);
+                return;
+            }
+
+            const fileInput = form.querySelector('.file-input');
+            const fileInstruction = form.querySelector('.file-instruction');
+            const fileNameDisplay = form.querySelector('.file-name-display');
+            const uploadBtn = form.querySelector('.upload-btn');
+
+            // Verify all required elements exist
+            if (!fileInput || !fileInstruction || !fileNameDisplay || !uploadBtn) {
+                console.error('One or more required elements not found in form:', formId);
+                return;
+            }
+
+            // Add click event to the upload trigger area
+            trigger.addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            // Show file name when a file is selected
+            fileInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const fileName = this.files[0].name;
+                    fileInstruction.classList.add('d-none');
+                    fileNameDisplay.textContent = fileName;
+                    fileNameDisplay.classList.remove('d-none');
+                    uploadBtn.removeAttribute('disabled');
+
+                    // Add a visual indicator that file is selected
+                    trigger.classList.add('file-selected');
+                } else {
+                    resetFileDisplay();
+                }
+            });
+
+            // Reset the file display when needed
+            function resetFileDisplay() {
+                fileInstruction.classList.remove('d-none');
+                fileNameDisplay.classList.add('d-none');
+                fileNameDisplay.textContent = '';
+                uploadBtn.setAttribute('disabled', 'disabled');
+                trigger.classList.remove('file-selected');
+            }
+
+            // Add a reset capability
+            fileNameDisplay.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent triggering the parent click event
+                fileInput.value = '';
+                resetFileDisplay();
+            });
         }
 
-        // Add a reset capability (optional - if you want to allow users to clear their selection)
-        fileNameDisplay.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent triggering the parent click event
-            fileInput.value = '';
-            resetFileDisplay();
-        });
-    });
+        // Check if document is already loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initUploadCard);
+        } else {
+            // Document already loaded, run initialization immediately
+            initUploadCard();
+        }
+    })();
 </script>

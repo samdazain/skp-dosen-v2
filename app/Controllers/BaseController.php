@@ -51,9 +51,23 @@ abstract class BaseController extends Controller
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
 
+        // If user is logged in, ensure semester is loaded
+        if (session()->get('isLoggedIn')) {
+            $semesterModel = new \App\Models\SemesterModel();
+            $activeSemesterId = session()->get('activeSemesterId');
+
+            if (!$activeSemesterId) {
+                $semester = $semesterModel->getCurrentSemester();
+                if ($semester) {
+                    session()->set('activeSemesterId', $semester['id']);
+                    session()->set('activeSemesterText', $semesterModel->formatSemester($semester));
+                }
+            }
+        }
+
         // Preload any models, libraries, etc, here.
         // Load helpers
-        helper(['url', 'form', 'navigation']);
+        helper(['url', 'form', 'navigation', 'user']);
 
         // E.g.: $this->session = service('session');
     }

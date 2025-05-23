@@ -14,7 +14,11 @@ class CreateAllTables extends Migration
             'username'    => ['type' => 'VARCHAR', 'constraint' => 100],
             'email'       => ['type' => 'VARCHAR', 'constraint' => 100],
             'password'    => ['type' => 'VARCHAR', 'constraint' => 255],
-            'role'        => ['type' => 'ENUM', 'constraint' => ['admin', 'user'], 'default' => 'user'],
+            'role' => [
+                'type' => 'ENUM',
+                'constraint' => ['admin', 'dekan', 'wadek1', 'wadek2', 'wadek3', 'kaprodi', 'staff'],
+                'default' => 'staff'
+            ],
             'study_program' => [
                 'type' => 'ENUM',
                 'constraint' => ['bisnis_digital', 'informatika', 'sistem_informasi', 'sains_data', 'magister_teknologi_informasi'],
@@ -25,6 +29,17 @@ class CreateAllTables extends Migration
         ]);
         $this->forge->addKey('id', true);
         $this->forge->createTable('users');
+
+        // Semesters Table
+        $this->forge->addField([
+            'id' => ['type' => 'INT', 'unsigned' => true, 'auto_increment' => true],
+            'year' => ['type' => 'YEAR'],
+            'term' => ['type' => 'ENUM', 'constraint' => ['1', '2']],
+            'created_at' => ['type' => 'DATETIME', 'null' => true],
+            'updated_at' => ['type' => 'DATETIME', 'null' => true],
+        ]);
+        $this->forge->addKey('id', true);
+        $this->forge->createTable('semesters');
 
         // Lecturers Table
         $this->forge->addField([
@@ -59,82 +74,94 @@ class CreateAllTables extends Migration
 
         // Integrity Table
         $this->forge->addField([
-            'id'           => ['type' => 'INT', 'auto_increment' => true],
-            'lecturer_id'  => ['type' => 'INT', 'unsigned' => true],
+            'id'            => ['type' => 'INT', 'auto_increment' => true],
+            'lecturer_id'   => ['type' => 'INT', 'unsigned' => true],
+            'semester_id'   => ['type' => 'INT', 'unsigned' => true],
             'teaching_days' => ['type' => 'TINYINT'],
             'courses_taught' => ['type' => 'TINYINT'],
-            'score'        => ['type' => 'TINYINT'],
-            'updated_by'   => ['type' => 'INT', 'null' => true],
-            'updated_at'   => ['type' => 'DATETIME', 'null' => true],
+            'score'         => ['type' => 'TINYINT'],
+            'updated_by'    => ['type' => 'INT', 'null' => true],
+            'updated_at'    => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('lecturer_id', 'lecturers', 'id');
+        $this->forge->addForeignKey('semester_id', 'semesters', 'id');
         $this->forge->createTable('integrity');
 
         // Discipline Table
         $this->forge->addField([
-            'id'                 => ['type' => 'INT', 'auto_increment' => true],
-            'lecturer_id'        => ['type' => 'INT', 'unsigned' => true],
-            'absence'            => ['type' => 'TINYINT'],
-            'morning_absence'    => ['type' => 'TINYINT'],
-            'ceremony_absence'   => ['type' => 'TINYINT'],
-            'score'              => ['type' => 'TINYINT'],
-            'updated_by'         => ['type' => 'INT', 'null' => true],
-            'updated_at'         => ['type' => 'DATETIME', 'null' => true],
+            'id'               => ['type' => 'INT', 'auto_increment' => true],
+            'lecturer_id'      => ['type' => 'INT', 'unsigned' => true],
+            'semester_id'      => ['type' => 'INT', 'unsigned' => true],
+            'absence'          => ['type' => 'TINYINT'],
+            'morning_absence'  => ['type' => 'TINYINT'],
+            'ceremony_absence' => ['type' => 'TINYINT'],
+            'score'            => ['type' => 'TINYINT'],
+            'updated_by'       => ['type' => 'INT', 'null' => true],
+            'updated_at'       => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('lecturer_id', 'lecturers', 'id');
+        $this->forge->addForeignKey('semester_id', 'semesters', 'id');
         $this->forge->createTable('discipline');
 
         // Commitment Table
         $this->forge->addField([
-            'id'              => ['type' => 'INT', 'auto_increment' => true],
-            'lecturer_id'     => ['type' => 'INT', 'unsigned' => true],
-            'competence'      => ['type' => 'ENUM', 'constraint' => ['active', 'inactive']],
-            'tridharma_pass'  => ['type' => 'BOOLEAN'],
-            'score'           => ['type' => 'TINYINT'],
-            'updated_by'      => ['type' => 'INT', 'null' => true],
-            'updated_at'      => ['type' => 'DATETIME', 'null' => true],
+            'id'             => ['type' => 'INT', 'auto_increment' => true],
+            'lecturer_id'    => ['type' => 'INT', 'unsigned' => true],
+            'semester_id'    => ['type' => 'INT', 'unsigned' => true],
+            'competence'     => ['type' => 'ENUM', 'constraint' => ['active', 'inactive']],
+            'tridharma_pass' => ['type' => 'BOOLEAN'],
+            'score'          => ['type' => 'TINYINT'],
+            'updated_by'     => ['type' => 'INT', 'null' => true],
+            'updated_at'     => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('lecturer_id', 'lecturers', 'id');
+        $this->forge->addForeignKey('semester_id', 'semesters', 'id');
         $this->forge->createTable('commitment');
 
         // Cooperation Table
         $this->forge->addField([
-            'id'           => ['type' => 'INT', 'auto_increment' => true],
-            'lecturer_id'  => ['type' => 'INT', 'unsigned' => true],
-            'level'        => ['type' => 'ENUM', 'constraint' => ['not_cooperative', 'fair', 'cooperative', 'very_cooperative']],
-            'score'        => ['type' => 'TINYINT'],
-            'updated_by'   => ['type' => 'INT', 'null' => true],
-            'updated_at'   => ['type' => 'DATETIME', 'null' => true],
+            'id'          => ['type' => 'INT', 'auto_increment' => true],
+            'lecturer_id' => ['type' => 'INT', 'unsigned' => true],
+            'semester_id' => ['type' => 'INT', 'unsigned' => true],
+            'level'       => ['type' => 'ENUM', 'constraint' => ['not_cooperative', 'fair', 'cooperative', 'very_cooperative']],
+            'score'       => ['type' => 'TINYINT'],
+            'updated_by'  => ['type' => 'INT', 'null' => true],
+            'updated_at'  => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('lecturer_id', 'lecturers', 'id');
+        $this->forge->addForeignKey('semester_id', 'semesters', 'id');
         $this->forge->createTable('cooperation');
 
         // Service Orientation Table
         $this->forge->addField([
-            'id'           => ['type' => 'INT', 'auto_increment' => true],
-            'lecturer_id'  => ['type' => 'INT', 'unsigned' => true],
+            'id'                => ['type' => 'INT', 'auto_increment' => true],
+            'lecturer_id'       => ['type' => 'INT', 'unsigned' => true],
+            'semester_id'       => ['type' => 'INT', 'unsigned' => true],
             'questionnaire_score' => ['type' => 'FLOAT'],
-            'score'        => ['type' => 'TINYINT'],
-            'updated_by'   => ['type' => 'INT', 'null' => true],
-            'updated_at'   => ['type' => 'DATETIME', 'null' => true],
+            'score'             => ['type' => 'TINYINT'],
+            'updated_by'        => ['type' => 'INT', 'null' => true],
+            'updated_at'        => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('lecturer_id', 'lecturers', 'id');
+        $this->forge->addForeignKey('semester_id', 'semesters', 'id');
         $this->forge->createTable('service_orientation');
 
         // Master SKP Table
         $this->forge->addField([
             'id'           => ['type' => 'INT', 'auto_increment' => true],
             'lecturer_id'  => ['type' => 'INT', 'unsigned' => true],
+            'semester_id'  => ['type' => 'INT', 'unsigned' => true],
             'total_score'  => ['type' => 'TINYINT'],
             'created_at'   => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('lecturer_id', 'lecturers', 'id');
+        $this->forge->addForeignKey('semester_id', 'semesters', 'id');
         $this->forge->createTable('master_skp');
 
         // Upload Log Table
@@ -177,6 +204,7 @@ class CreateAllTables extends Migration
         $this->forge->dropTable('integrity');
         $this->forge->dropTable('score_settings');
         $this->forge->dropTable('lecturers');
+        $this->forge->dropTable('semesters');
         $this->forge->dropTable('users');
     }
 }

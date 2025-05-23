@@ -11,6 +11,11 @@ helper('navigation');
 
 <head>
     <?= view('layout/partials/head') ?>
+    <script>
+        const baseUrl = '<?= base_url() ?>';
+    </script>
+    <link rel="stylesheet" href="<?= base_url('assets/css/semester_selector.css') ?>">
+
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed sidebar-collapse">
@@ -43,7 +48,7 @@ helper('navigation');
     <!-- Custom JS -->
     <script src="<?= base_url('assets/js/sidebar.js') ?>"></script>
     <script src="<?= base_url('assets/js/admin_layout.js') ?>"></script>
-
+    <script src="<?= base_url('assets/js/semester_selector.js') ?>"></script>
 
     <?= $this->renderSection('scripts') ?>
 </body>

@@ -14,9 +14,20 @@ class LecturerController extends BaseController
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        $userData = [
-            'name' => session()->get('user_name'),
-            'role' => session()->get('user_role'),
+        // $userData = [
+        //     'name' => session()->get('user_name'),
+        //     'role' => session()->get('user_role'),
+        // ];
+
+        // Dummy data should be here, not in the view
+        $lecturers = [
+            [
+                'name' => 'Dr. Budi Santoso, M.Kom',
+                'nip' => '197505152000121001',
+                'study_program' => 'Informatika',
+                'position' => 'Lektor Kepala'
+            ],
+            // ... rest of the dummy data
         ];
 
         // In a real application, you would load lecturers from the database
@@ -24,7 +35,7 @@ class LecturerController extends BaseController
 
         return view('lecturer/index', [
             'pageTitle' => 'Daftar Dosen | SKP Dosen',
-            'user' => $userData
+            'lecturers' => $lecturers
         ]);
     }
 

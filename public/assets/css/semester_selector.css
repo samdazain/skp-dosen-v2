@@ -1,0 +1,39 @@
+.semester-selector .dropdown-toggle {
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    min-width: 200px;
+    justify-content: space-between;
+}
+
+.semester-selector .dropdown-toggle::after {
+    margin-left: 10px;
+}
+
+.semester-selector .dropdown-menu {
+    min-width: 220px;
+}
+
+.semester-selector .dropdown-item.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.semester-selector .dropdown-item.active .fa-check {
+    color: white;
+}
+
+.semester-selector .dropdown-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+}
+
+.semester-selector .dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.semester-selector .dropdown-item.active:hover {
+    background-color: #0069d9;
+}

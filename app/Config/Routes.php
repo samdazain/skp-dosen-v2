@@ -22,6 +22,13 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // Dashboard
     $routes->get('/dashboard', 'DashboardController::dashboard');
 
+    // Semester Selection
+    $routes->group('semester', function ($routes) {
+        $routes->get('/', 'SemesterController::index');
+        $routes->get('current', 'SemesterController::current');
+        $routes->match(['get', 'post'], 'change', 'SemesterController::change');
+    });
+
     // SKP
     $routes->group('skp', static function ($routes) {
         $routes->get('', 'SKPController::index');

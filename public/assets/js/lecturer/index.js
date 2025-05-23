@@ -1,3 +1,10 @@
+function confirmDelete(id) {
+    // Set the delete URL dynamically
+    document.getElementById('confirmDeleteBtn').href = `${baseUrl}/lecturers/delete/${id}`;
+    // Show the modal
+    $('#deleteModal').modal('show');
+}
+
 // Search functionality
 document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('searchInput');
@@ -12,10 +19,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const program = row.cells[3].textContent.toLowerCase();
             const position = row.cells[4].textContent.toLowerCase();
 
-            if (name.includes(searchTerm) ||
-                nip.includes(searchTerm) ||
-                program.includes(searchTerm) ||
-                position.includes(searchTerm)) {
+            if (name.includes(searchTerm) || nip.includes(searchTerm) ||
+                program.includes(searchTerm) || position.includes(searchTerm)) {
                 row.style.display = '';
             } else {
                 row.style.display = 'none';
@@ -23,9 +28,3 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 });
-
-// Delete confirmation
-function confirmDelete(id) {
-    document.getElementById('confirmDeleteBtn').href = '<?= base_url('lecturers / delete/') ?> ' + id;
-    $('#deleteModal').modal('show');
-}
