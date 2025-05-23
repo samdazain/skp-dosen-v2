@@ -10,6 +10,14 @@ use App\Controllers\TestDBConnection;
  * @var RouteCollection $routes
  */
 
+// Debug routes - remove in production!
+if (ENVIRONMENT === 'development') {
+    $routes->group('debug', static function ($routes) {
+        $routes->get('session', 'DebugController::testSession');
+        $routes->get('database', 'DebugController::testDatabase');
+    });
+}
+
 // Public Routes
 $routes->get('/test-db', [TestDBConnection::class, 'index']);
 $routes->get('/', [DashboardController::class, 'index']);
@@ -94,13 +102,13 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     });
 
     // User Management
-    $routes->group('user', static function ($routes) {
-        $routes->get('', 'UserController::index');
+    $routes->group('user', function ($routes) {
+        $routes->get('/', 'UserController::index');
         $routes->get('create', 'UserController::create');
         $routes->post('store', 'UserController::store');
         $routes->get('edit/(:num)', 'UserController::edit/$1');
         $routes->post('update/(:num)', 'UserController::update/$1');
-        $routes->get('delete/(:num)', 'UserController::delete/$1');
+        $routes->post('delete/(:num)', 'UserController::delete/$1');
     });
 
     // Settings

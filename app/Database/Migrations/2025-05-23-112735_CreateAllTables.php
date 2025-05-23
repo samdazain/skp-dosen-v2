@@ -11,19 +11,17 @@ class CreateAllTables extends Migration
         // Users Table
         $this->forge->addField([
             'id'          => ['type' => 'INT', 'unsigned' => true, 'auto_increment' => true],
-            'username'    => ['type' => 'VARCHAR', 'constraint' => 100],
-            'email'       => ['type' => 'VARCHAR', 'constraint' => 100],
+            'nip'         => ['type' => 'VARCHAR', 'constraint' => 30, 'unique' => true],
+            'name'        => ['type' => 'VARCHAR', 'constraint' => 100],
+            'email'       => ['type' => 'VARCHAR', 'constraint' => 100, 'unique' => true],
             'password'    => ['type' => 'VARCHAR', 'constraint' => 255],
+            'position'    => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             'role' => [
                 'type' => 'ENUM',
                 'constraint' => ['admin', 'dekan', 'wadek1', 'wadek2', 'wadek3', 'kaprodi', 'staff'],
                 'default' => 'staff'
             ],
-            'study_program' => [
-                'type' => 'ENUM',
-                'constraint' => ['bisnis_digital', 'informatika', 'sistem_informasi', 'sains_data', 'magister_teknologi_informasi'],
-                'null' => true
-            ],
+            'study_program' => ['type' => 'VARCHAR', 'constraint' => 100, 'null' => true],
             'created_at'  => ['type' => 'DATETIME', 'null' => true],
             'updated_at'  => ['type' => 'DATETIME', 'null' => true],
         ]);
@@ -77,7 +75,7 @@ class CreateAllTables extends Migration
             'id'            => ['type' => 'INT', 'auto_increment' => true],
             'lecturer_id'   => ['type' => 'INT', 'unsigned' => true],
             'semester_id'   => ['type' => 'INT', 'unsigned' => true],
-            'teaching_days' => ['type' => 'TINYINT'],
+            'absence_count' => ['type' => 'TINYINT'],
             'courses_taught' => ['type' => 'TINYINT'],
             'score'         => ['type' => 'TINYINT'],
             'updated_by'    => ['type' => 'INT', 'null' => true],
@@ -94,7 +92,7 @@ class CreateAllTables extends Migration
             'lecturer_id'      => ['type' => 'INT', 'unsigned' => true],
             'semester_id'      => ['type' => 'INT', 'unsigned' => true],
             'absence'          => ['type' => 'TINYINT'],
-            'morning_absence'  => ['type' => 'TINYINT'],
+            'exercise_morning_absence'  => ['type' => 'TINYINT'],
             'ceremony_absence' => ['type' => 'TINYINT'],
             'score'            => ['type' => 'TINYINT'],
             'updated_by'       => ['type' => 'INT', 'null' => true],

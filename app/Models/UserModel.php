@@ -6,6 +6,14 @@ use CodeIgniter\Model;
 
 class UserModel extends Model
 {
+
+    // Add this property to get detailed error information
+    protected $returnType = 'array';
+    protected $useAutoIncrement = true;
+
+    // Add this to return insert ID
+    protected $allowCallbacks = true;
+
     protected $table = 'users';
     protected $primaryKey = 'id';
 
@@ -25,6 +33,11 @@ class UserModel extends Model
 
     protected $beforeInsert = ['hashPassword'];
     protected $beforeUpdate = ['hashPasswordIfExists'];
+
+    // For returning entity objects (optional)
+    // protected $returnType = 'App\Entities\User';
+    // protected $useSoftDeletes = true;
+    // protected $deletedField = 'deleted_at';
 
     /**
      * Hash password before inserting
@@ -58,17 +71,7 @@ class UserModel extends Model
      */
     public function findByNIP(string $nip)
     {
-        // In a real application, we would use:
-        // return $this->where('nip', $nip)->first();
-
-        // For demonstration purposes, using dummy data:
-        foreach ($this->getDummyUsers() as $user) {
-            if ($user['nip'] === $nip) {
-                return $user;
-            }
-        }
-
-        return null;
+        return $this->where('nip', $nip)->first();
     }
 
     /**
@@ -94,147 +97,50 @@ class UserModel extends Model
      */
     public function getAllUsers($search = null)
     {
-        // In a real application, we would use query builder:
-        // $builder = $this->builder();
-        // if ($search) {
-        //     $builder->like('name', $search)
-        //             ->orLike('nip', $search)
-        //             ->orLike('email', $search)
-        //             ->orLike('position', $search)
-        //             ->orLike('study_program', $search);
-        // }
-        // return $builder->get()->getResultArray();
-
-        // For demonstration, using dummy data:
-        $users = $this->getDummyUsers();
+        $builder = $this->builder();
 
         if ($search) {
-            $filteredUsers = [];
-            $search = strtolower($search);
-
-            foreach ($users as $user) {
-                if (
-                    strpos(strtolower($user['name'] ?? ''), $search) !== false ||
-                    strpos(strtolower($user['nip'] ?? ''), $search) !== false ||
-                    strpos(strtolower($user['position'] ?? ''), $search) !== false ||
-                    strpos(strtolower($user['email'] ?? ''), $search) !== false ||
-                    strpos(strtolower($user['role'] ?? ''), $search) !== false ||
-                    (!empty($user['study_program']) && strpos(strtolower($user['study_program']), $search) !== false)
-                ) {
-                    $filteredUsers[] = $user;
-                }
-            }
-
-            return $filteredUsers;
+            $builder->groupStart()
+                ->like('name', $search)
+                ->orLike('nip', $search)
+                ->orLike('email', $search)
+                ->orLike('position', $search)
+                ->orLike('study_program', $search)
+                ->groupEnd();
         }
 
-        return $users;
+        return $builder->get()->getResultArray();
     }
 
     /**
-     * Get dummy users for demonstration purposes
-     */
-    private function getDummyUsers()
-    {
-        return [
-            [
-                'id' => 1,
-                'name' => 'Administrator',
-                'nip' => '199001012015041001',
-                'position' => 'Administrator Sistem',
-                'email' => 'admin@university.ac.id',
-                'role' => 'admin',
-                'study_program' => null,
-                'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
-                'created_at' => '2023-01-01 00:00:00',
-                'updated_at' => '2023-01-01 00:00:00'
-            ],
-            [
-                'id' => 2,
-                'name' => 'Prof. Dr. Bambang Sutopo, M.Si.',
-                'nip' => '196705152000031002',
-                'position' => 'Dekan Fakultas',
-                'email' => 'bambang.sutopo@university.ac.id',
-                'role' => 'dekan',
-                'study_program' => null,
-                'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
-                'created_at' => '2023-01-02 00:00:00',
-                'updated_at' => '2023-01-02 00:00:00'
-            ],
-            [
-                'id' => 3,
-                'name' => 'Dr. Siti Aminah, M.T.',
-                'nip' => '197508182005012003',
-                'position' => 'Wakil Dekan Bidang Akademik',
-                'email' => 'siti.aminah@university.ac.id',
-                'role' => 'wadek1',
-                'study_program' => null,
-                'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
-                'created_at' => '2023-01-03 00:00:00',
-                'updated_at' => '2023-01-03 00:00:00'
-            ],
-            [
-                'id' => 4,
-                'name' => 'Dr. Ahmad Fauzi, M.M.',
-                'nip' => '198203102008011004',
-                'position' => 'Wakil Dekan Bidang Keuangan dan SDM',
-                'email' => 'ahmad.fauzi@university.ac.id',
-                'role' => 'wadek2',
-                'study_program' => null,
-                'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
-                'created_at' => '2023-01-04 00:00:00',
-                'updated_at' => '2023-01-04 00:00:00'
-            ],
-            [
-                'id' => 5,
-                'name' => 'Dr. Budi Santoso, M.Kom.',
-                'nip' => '198510202012121006',
-                'position' => 'Ketua Program Studi Teknik Informatika',
-                'email' => 'budi.santoso@university.ac.id',
-                'role' => 'kaprodi',
-                'study_program' => 'Teknik Informatika',
-                'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
-                'created_at' => '2023-01-05 00:00:00',
-                'updated_at' => '2023-01-05 00:00:00'
-            ],
-            [
-                'id' => 6,
-                'name' => 'Dr. Dewi Lestari, S.Kom., M.Cs.',
-                'nip' => '198704052014042007',
-                'position' => 'Ketua Program Studi Sistem Informasi',
-                'email' => 'dewi.lestari@university.ac.id',
-                'role' => 'kaprodi',
-                'study_program' => 'Sistem Informasi',
-                'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
-                'created_at' => '2023-01-06 00:00:00',
-                'updated_at' => '2023-01-06 00:00:00'
-            ],
-            [
-                'id' => 7,
-                'name' => 'Agus Wijaya, S.E.',
-                'nip' => '199209152018031008',
-                'position' => 'Staff Akademik',
-                'email' => 'agus.wijaya@university.ac.id',
-                'role' => 'staff',
-                'study_program' => null,
-                'password' => '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', // 'password'
-                'created_at' => '2023-01-07 00:00:00',
-                'updated_at' => '2023-01-07 00:00:00'
-            ]
-        ];
-    }
-
-    /**
-     * Get study programs list
+     * Get study programs list from the migration enum
      */
     public function getStudyPrograms()
     {
+        // Return friendly labels for the enum values
         return [
-            'bisnis_digital' => 'Bisnis Digital',
-            'informatika' => 'Informatika',
-            'sistem_informasi' => 'Sistem Informasi',
-            'sains_data' => 'Sains Data',
-            'magister_teknologi_informasi' => 'Magister Teknologi Informasi'
+            'Bisnis Digital',
+            'Informatika',
+            'Sistem Informasi',
+            'Sains Data',
+            'Magister Teknologi Informasi'
         ];
+    }
+
+    // Add a method to check DB errors
+    public function getLastError()
+    {
+        return $this->db->error();
+    }
+
+    // Override insert to add better error handling
+    public function insert($data = null, bool $returnID = true)
+    {
+        try {
+            return parent::insert($data, $returnID);
+        } catch (\Exception $e) {
+            log_message('error', 'Insert failed: ' . $e->getMessage());
+            throw $e; // Re-throw to be caught in the controller
+        }
     }
 }
