@@ -92,7 +92,7 @@ class UserController extends BaseController
 
             // Validasi manual untuk role kaprodi
             if ($this->request->getPost('role') === 'kaprodi' && empty($this->request->getPost('study_program'))) {
-                return redirect()->back()->withInput()->with('error', 'Program studi wajib diisi untuk role kaprodi');
+                return redirect()->back()->withInput()->with('error', 'Program studi wajib diisi kecuali Dekanat');
             }
 
             $data = [
@@ -208,7 +208,7 @@ class UserController extends BaseController
         }
 
         if ($this->request->getPost('role') === 'kaprodi' && empty($this->request->getPost('study_program'))) {
-            return redirect()->back()->withInput()->with('error', 'Program studi wajib diisi untuk role kaprodi');
+            return redirect()->back()->withInput()->with('error', 'Program studi wajib diisi untuk kecuali Dekanat');
         }
 
         $data = [

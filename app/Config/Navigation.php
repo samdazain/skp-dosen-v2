@@ -55,16 +55,16 @@ class Navigation extends BaseConfig
             'icon' => 'fas fa-edit',
             'label' => 'Setting Nilai'
         ],
-        [
-            'path' => '/archive',
-            'icon' => 'fas fa-archive',
-            'label' => 'Arsip File'
-        ],
-        [
-            'path' => '/history',
-            'icon' => 'fas fa-history',
-            'label' => 'Riwayat Aktivitas'
-        ],
+        // [
+        //     'path' => '/archive',
+        //     'icon' => 'fas fa-archive',
+        //     'label' => 'Arsip File'
+        // ],
+        // [
+        //     'path' => '/history',
+        //     'icon' => 'fas fa-history',
+        //     'label' => 'Riwayat Aktivitas'
+        // ],
         [
             'path' => '/user',
             'icon' => 'fas fa-user-cog',

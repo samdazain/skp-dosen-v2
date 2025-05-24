@@ -46,14 +46,14 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('export-pdf', 'SKPController::exportPdf');
     });
 
-    // Lecturers (CRUD)
+    // Lecturer (CRUD)
     $routes->group('lecturers', static function ($routes) {
         $routes->get('', 'LecturerController::index');
         $routes->get('create', 'LecturerController::create');
         $routes->post('store', 'LecturerController::store');
         $routes->get('edit/(:num)', 'LecturerController::edit/$1');
-        $routes->post('update/(:num)', 'LecturerController::update/$1');
-        $routes->get('delete/(:num)', 'LecturerController::delete/$1');
+        $routes->put('update/(:num)', 'LecturerController::update/$1');
+        $routes->delete('delete/(:num)', 'LecturerController::delete/$1');
     });
 
     // Integrity

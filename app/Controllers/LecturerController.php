@@ -2,130 +2,215 @@
 
 namespace App\Controllers;
 
+use App\Models\LecturerModel;
+
 class LecturerController extends BaseController
 {
-    /**
-     * Display list of all lecturers
-     */
+    protected $lecturerModel;
+    protected $helpers = ['form', 'url'];
+
+    public function __construct()
+    {
+        $this->lecturerModel = new LecturerModel();
+        helper($this->helpers);
+    }
+
     public function index()
     {
-        // Ensure user is logged in
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        // $userData = [
-        //     'name' => session()->get('user_name'),
-        //     'role' => session()->get('user_role'),
-        // ];
+        $search = $this->request->getGet('search');
+        $page = (int)($this->request->getGet('page') ?? 1);
+        $perPage = 10;
 
-        // Dummy data should be here, not in the view
-        $lecturers = [
-            [
-                'name' => 'Dr. Budi Santoso, M.Kom',
-                'nip' => '197505152000121001',
-                'study_program' => 'Informatika',
-                'position' => 'Lektor Kepala'
-            ],
-            // ... rest of the dummy data
-        ];
+        $result = $this->lecturerModel->getLecturers($search, $perPage, ($page - 1) * $perPage);
+        $total = $result['total'];
 
-        // In a real application, you would load lecturers from the database
-        // For now, we'll just use dummy data
+        $pager = service('pager');
+        $pager->setPath('lecturers');
+        $pager->makeLinks($page, $perPage, $total);
 
-        return view('lecturer/index', [
+        $lecturers = $result['lecturers'];
+        foreach ($lecturers as &$lecturer) {
+            if (!empty($lecturer['study_program'])) {
+                $lecturer['study_program'] = $this->lecturerModel->formatStudyProgram($lecturer['study_program']);
+            }
+        }
+
+        return view('lecturers/index', [
             'pageTitle' => 'Daftar Dosen | SKP Dosen',
-            'lecturers' => $lecturers
+            'lecturers' => $lecturers,
+            'pager' => $pager,
+            'search' => $search
         ]);
     }
 
-    /**
-     * Show form to create a new lecturer
-     */
     public function create()
     {
-        // Ensure user is logged in
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        return view('lecturer/create', [
+        return view('lecturers/create', [
             'pageTitle' => 'Tambah Dosen | SKP Dosen',
-            'user' => [
-                'name' => session()->get('user_name'),
-                'role' => session()->get('user_role'),
-            ]
+            'validation' => \Config\Services::validation(),
+            'positions' => $this->lecturerModel->getPositions(),
+            'studyPrograms' => $this->lecturerModel->getStudyPrograms()
         ]);
     }
 
-    /**
-     * Process the form submission to store a new lecturer
-     */
     public function store()
     {
-        // Ensure user is logged in
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        // In a real application, you would validate and store the data
-        // For now, we'll just redirect back with a success message
+        $postData = $this->request->getPost();
+        $position = $postData['position'] ?? '';
 
-        return redirect()->to('lecturers')->with('success', 'Data dosen berhasil ditambahkan');
+        $isLeadership = $this->lecturerModel->isLeadershipPosition($position);
+
+        if ($isLeadership) {
+            $rules = [
+                'nip' => 'required|min_length[10]|max_length[30]|is_unique[lecturers.nip,id,{id}]',
+                'name' => 'required|min_length[3]|max_length[100]',
+                'position' => 'required|in_list[' . implode(',', $this->lecturerModel->getPositions()) . ']'
+            ];
+        } else {
+            $rules = $this->lecturerModel->getValidationRules($postData, null, $isLeadership);
+        }
+
+        $messages = $this->lecturerModel->validationMessages;
+
+        if ($isLeadership) {
+            unset($messages['study_program']);
+        }
+
+        if (!$this->validate($rules, $messages)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors())
+                ->with('error', 'Validation failed. Please check your input.');
+        }
+
+        $data = [
+            'nip' => $postData['nip'],
+            'name' => $postData['name'],
+            'position' => $position,
+        ];
+
+        if (!$isLeadership) {
+            $data['study_program'] = $postData['study_program'];
+        } else {
+            $data['study_program'] = null;
+        }
+
+        try {
+            $insertId = $this->lecturerModel->insert($data);
+
+            if (!$insertId) {
+                $errors = $this->lecturerModel->errors();
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', $errors)
+                    ->with('error', 'Failed to add lecturer.');
+            }
+
+            return redirect()->to('lecturers')
+                ->with('success', 'Data dosen berhasil ditambahkan');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Error adding lecturer: ' . $e->getMessage());
+        }
     }
 
-    /**
-     * Show form to edit a lecturer
-     */
     public function edit($id)
     {
-        // Ensure user is logged in
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        // In a real application, you would load the lecturer data by ID
-        // For now, we'll just pass the ID to the view
+        $lecturer = $this->lecturerModel->find($id);
+        if (!$lecturer) {
+            return redirect()->to('lecturers')->with('error', 'Dosen tidak ditemukan');
+        }
 
-        return view('lecturer/edit', [
+        return view('lecturers/edit', [
             'pageTitle' => 'Edit Dosen | SKP Dosen',
-            'id' => $id,
-            'user' => [
-                'name' => session()->get('user_name'),
-                'role' => session()->get('user_role'),
-            ]
+            'validation' => \Config\Services::validation(),
+            'lecturer' => $lecturer,
+            'positions' => $this->lecturerModel->getPositions(),
+            'studyPrograms' => $this->lecturerModel->getStudyPrograms(),
+            'isLeadershipPosition' => $this->lecturerModel->isLeadershipPosition($lecturer['position'])
         ]);
     }
 
-    /**
-     * Process the form submission to update a lecturer
-     */
     public function update($id)
     {
-        // Ensure user is logged in
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        // In a real application, you would validate and update the data
-        // For now, we'll just redirect back with a success message
+        $lecturer = $this->lecturerModel->find($id);
+        if (!$lecturer) {
+            return redirect()->to('lecturers')->with('error', 'Dosen tidak ditemukan');
+        }
 
-        return redirect()->to('lecturers')->with('success', 'Data dosen berhasil diperbarui');
+        $postData = $this->request->getPost();
+        $position = $postData['position'] ?? '';
+        $isLeadership = $this->lecturerModel->isLeadershipPosition($position);
+
+        // Pass the ID to getValidationRules to handle NIP uniqueness correctly
+        $rules = $this->lecturerModel->getValidationRules($postData, $id);
+        $messages = $this->lecturerModel->validationMessages;
+
+        if (!$this->validate($rules, $messages)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        $data = [
+            'nip' => $postData['nip'],
+            'name' => $postData['name'],
+            'position' => $position,
+            'study_program' => null
+        ];
+
+        if (!$isLeadership && !empty($postData['study_program'])) {
+            $data['study_program'] = $postData['study_program'];
+        }
+
+        try {
+            $this->lecturerModel->update($id, $data);
+            return redirect()->to('lecturers')
+                ->with('success', 'Data dosen berhasil diperbarui');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui data: ' . $e->getMessage());
+        }
     }
 
-    /**
-     * Delete a lecturer
-     */
     public function delete($id)
     {
-        // Ensure user is logged in
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        // In a real application, you would delete the lecturer by ID
-        // For now, we'll just redirect back with a success message
+        $lecturer = $this->lecturerModel->find($id);
+        if (!$lecturer) {
+            return redirect()->to('lecturers')->with('error', 'Dosen tidak ditemukan');
+        }
 
-        return redirect()->to('lecturers')->with('success', 'Data dosen berhasil dihapus');
+        try {
+            $this->lecturerModel->delete($id);
+            return redirect()->to('lecturers')->with('success', 'Data dosen berhasil dihapus');
+        } catch (\Exception $e) {
+            return redirect()->to('lecturers')->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
     }
 }

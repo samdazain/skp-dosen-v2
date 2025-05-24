@@ -9,19 +9,17 @@ class UserSeeder extends Seeder
     public function run()
     {
         $data = [
-            [
-                'name' => 'Administrator',
-                'nip' => '199001012015041001',
-                'position' => 'Administrator Sistem',
-                'email' => 'admin@university.ac.id',
-                'role' => 'admin',
-                'password' => password_hash('password', PASSWORD_DEFAULT),
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
+            'nip' => '123123',
+            'name' => 'Administrator',
+            'email' => 'admin@fasilkom.com',
+            'password' => password_hash('qweqwe123', PASSWORD_DEFAULT),
+            'position' => 'System Administrator',
+            'role' => 'admin',
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
         ];
 
-        // Simple Queries
-        $this->db->table('users')->insertBatch($data);
+        // Insert the admin user
+        $this->db->table('users')->insert($data);
     }
 }
