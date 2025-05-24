@@ -24,7 +24,7 @@ $routes->get('/', [DashboardController::class, 'index']);
 $routes->get('/login', [AuthController::class, 'index']);
 $routes->post('/login', [AuthController::class, 'login']);
 $routes->get('/logout', [AuthController::class, 'logout']);
-$routes->get('/change-password', [AuthController::class, 'changePassword']);
+$routes->get('/settings', [AuthController::class, 'settings']);
 $routes->post('/change-password', [AuthController::class, 'changePassword']);
 
 // Protected Routes (Require Authentication)
@@ -111,11 +111,5 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('edit/(:num)', 'UserController::edit/$1');
         $routes->post('update/(:num)', 'UserController::update/$1');
         $routes->post('delete/(:num)', 'UserController::delete/$1');
-    });
-
-    // Settings
-    $routes->group('settings', static function ($routes) {
-        $routes->get('', 'SettingController::index');
-        $routes->post('change-password', 'SettingController::changePassword');
     });
 });

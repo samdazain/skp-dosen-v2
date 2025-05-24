@@ -50,7 +50,6 @@ class AuthController extends BaseController
         }
 
         if (!$this->userModel->verifyPassword($password, $user['password'])) {
-            sleep(1);
             return redirect()->back()->withInput()->with('error', 'Password salah');
         }
 
@@ -81,24 +80,32 @@ class AuthController extends BaseController
         return redirect()->to('login')->with('message', 'Anda berhasil logout');
     }
 
+    public function settings()
+    {
+        if (!$this->session->has('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        $userData = [
+            'id' => $this->session->get('user_id'),
+            'name' => $this->session->get('user_name'),
+            'email' => $this->session->get('user_email'),
+            'role' => $this->session->get('user_role'),
+        ];
+
+        return view('auth/settings', [
+            'pageTitle' => 'Pengaturan Akun | SKP Dosen',
+            'user' => $userData
+        ]);
+    }
+
     public function changePassword()
     {
         if (!$this->session->has('isLoggedIn')) {
-            return redirect()->to('login')->with('error', 'Anda harus login terlebih dahulu');
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        if ($this->request->getMethod() !== 'post') {
-            return view('auth/change_password', [
-                'pageTitle' => 'Ubah Password | SKP Dosen',
-                'user' => [
-                    'name' => $this->session->get('user_name'),
-                    'role' => $this->session->get('user_role'),
-                ]
-            ]);
-        }
-
-        $validation = \Config\Services::validation();
-        $validation->setRules([
+        $rules = [
             'current_password' => 'required',
             'new_password' => [
                 'rules' => 'required|min_length[6]|regex_match[/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{6,}$/]',
@@ -107,23 +114,27 @@ class AuthController extends BaseController
                 ]
             ],
             'confirm_password' => 'required|matches[new_password]'
-        ]);
+        ];
 
-        if (!$validation->withRequest($this->request)->run()) {
-            return redirect()->back()->with('errors', $validation->getErrors());
+        if (!$this->validate($rules)) {
+            return redirect()->to('settings')->with('errors', $this->validator->getErrors());
         }
 
         $userId = $this->session->get('user_id');
-        $user = $this->userModel->find($userId);
+        $currentPassword = $this->request->getPost('current_password');
+        $newPassword = $this->request->getPost('new_password');
 
-        if (!$this->userModel->verifyPassword($this->request->getPost('current_password'), $user['password'])) {
-            return redirect()->back()->with('error', 'Password saat ini tidak valid');
+        $user = $this->userModel->find($userId);
+        if (!$user) {
+            return redirect()->to('settings')->with('error', 'User tidak ditemukan');
         }
 
-        $this->userModel->update($userId, [
-            'password' => $this->request->getPost('new_password')
-        ]);
+        if (!$this->userModel->verifyPassword($currentPassword, $user['password'])) {
+            return redirect()->to('settings')->with('error', 'Password saat ini tidak valid');
+        }
 
-        return redirect()->to('dashboard')->with('success', 'Password berhasil diubah');
+        $this->userModel->update($userId, ['password' => $newPassword]);
+
+        return redirect()->to('settings')->with('success', 'Password berhasil diubah');
     }
 }

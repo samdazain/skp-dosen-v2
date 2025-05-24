@@ -4,7 +4,6 @@
  * @var CodeIgniter\View\View $this
  */
 ?>
-
 <?= $this->extend('layout/admin_layout') ?>
 
 <?= $this->section('content') ?>
@@ -91,8 +90,7 @@
 
                         <ul class="list-group list-group-unbordered mb-3">
                             <li class="list-group-item">
-                                <!-- <b>Email</b> <a class="float-right"><?= $user['email'] ?></a> -->
-                                <b>Email</b> <a class="float-right"><?= 'admin@gmail.com' ?></a>
+                                <b>Email</b> <span class="float-right"><?= $user['email'] ?? 'Not set' ?></span>
                             </li>
                             <li class="list-group-item">
                                 <b>Role</b>
@@ -124,7 +122,9 @@
                         <h3 class="card-title">Ubah Password</h3>
                     </div>
 
-                    <form action="<?= base_url('settings/change-password') ?>" method="post">
+                    <form action="<?= base_url('change-password') ?>" method="post">
+                        <?= csrf_field() ?>
+
                         <div class="card-body">
                             <div class="form-group">
                                 <label for="current_password">Password Saat Ini <span
@@ -153,7 +153,8 @@
                                         </button>
                                     </div>
                                 </div>
-                                <small class="form-text text-muted">Password minimal 6 karakter</small>
+                                <small class="form-text text-muted">Password minimal 6 karakter dengan kombinasi huruf
+                                    dan angka</small>
                             </div>
 
                             <div class="form-group">
@@ -170,7 +171,6 @@
                                         </button>
                                     </div>
                                 </div>
-                                <small class="form-text text-muted">Pastikan sama dengan password baru</small>
                             </div>
 
                             <div class="alert alert-info">
@@ -196,7 +196,6 @@
 </section>
 
 <script>
-    // Toggle password visibility
     document.addEventListener('DOMContentLoaded', function() {
         const toggleButtons = document.querySelectorAll('.toggle-password');
 
@@ -206,7 +205,6 @@
                 const passwordInput = document.getElementById(targetId);
                 const icon = this.querySelector('i');
 
-                // Toggle input type between password and text
                 if (passwordInput.type === 'password') {
                     passwordInput.type = 'text';
                     icon.classList.remove('fa-eye');
