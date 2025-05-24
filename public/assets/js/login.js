@@ -10,13 +10,16 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
-    // Sample data for demo purposes
-    // In a real application, this might come from an AJAX call or session storage
-    const recentUsers = [
-        "123456789", // Dr. John Doe
-        "987654321", // Prof. Jane Smith
-        "admin"      // Administrator
-    ];
+    // Load stored users from localStorage
+    let recentUsers = [];
+    if (typeof Storage !== "undefined") {
+        recentUsers = JSON.parse(localStorage.getItem("recentUsers") || "[]");
+    }
+
+    // Add default admin user if in development
+    if (!recentUsers.includes("199001012015041001")) {
+        recentUsers.push("199001012015041001");
+    }
 
     // Initialize autocomplete
     $("#nip").autocomplete({
@@ -46,30 +49,16 @@ document.addEventListener('DOMContentLoaded', function () {
     $("form").on("submit", function () {
         const enteredNIP = $("#nip").val();
 
-        // In a real application, you'd only store this after successful login
-        // This is just a demo to show how to build history
-        if (enteredNIP && !recentUsers.includes(enteredNIP)) {
-            // Could store in localStorage for persistence between sessions
-            if (typeof Storage !== "undefined") {
-                let savedUsers = JSON.parse(localStorage.getItem("recentUsers") || "[]");
-                if (!savedUsers.includes(enteredNIP)) {
-                    savedUsers.unshift(enteredNIP);
-                    // Keep only the most recent 5 users
-                    savedUsers = savedUsers.slice(0, 5);
-                    localStorage.setItem("recentUsers", JSON.stringify(savedUsers));
-                }
-            }
+        // Store NIP in localStorage for future autocomplete
+        if (enteredNIP && typeof Storage !== "undefined") {
+            let savedUsers = JSON.parse(localStorage.getItem("recentUsers") || "[]");
+            // Remove this NIP if it already exists (so we can put it at the front)
+            savedUsers = savedUsers.filter(user => user !== enteredNIP);
+            // Add to beginning of array
+            savedUsers.unshift(enteredNIP);
+            // Keep only the most recent 5 users
+            savedUsers = savedUsers.slice(0, 5);
+            localStorage.setItem("recentUsers", JSON.stringify(savedUsers));
         }
     });
-
-    // Load stored users on page load
-    if (typeof Storage !== "undefined") {
-        const savedUsers = JSON.parse(localStorage.getItem("recentUsers") || "[]");
-        // Merge with our demo users but avoid duplicates
-        savedUsers.forEach(user => {
-            if (!recentUsers.includes(user)) {
-                recentUsers.unshift(user);
-            }
-        });
-    }
 });

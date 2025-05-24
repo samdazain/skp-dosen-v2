@@ -6,12 +6,8 @@ use CodeIgniter\Model;
 
 class UserModel extends Model
 {
-
-    // Add this property to get detailed error information
     protected $returnType = 'array';
     protected $useAutoIncrement = true;
-
-    // Add this to return insert ID
     protected $allowCallbacks = true;
 
     protected $table = 'users';
@@ -34,67 +30,49 @@ class UserModel extends Model
     protected $beforeInsert = ['hashPassword'];
     protected $beforeUpdate = ['hashPasswordIfExists'];
 
-    // For returning entity objects (optional)
-    // protected $returnType = 'App\Entities\User';
-    // protected $useSoftDeletes = true;
-    // protected $deletedField = 'deleted_at';
-
-    /**
-     * Hash password before inserting
-     */
     protected function hashPassword(array $data)
     {
-        if (!isset($data['data']['password'])) {
-            return $data;
+        if (isset($data['data']['password'])) {
+            $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
         }
-
-        $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
         return $data;
     }
 
-    /**
-     * Hash password before updating only if it exists in the data
-     */
     protected function hashPasswordIfExists(array $data)
     {
-        // Only hash the password if it's being updated
         if (!isset($data['data']['password']) || empty($data['data']['password'])) {
             return $data;
         }
 
-        $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
+        if (password_get_info($data['data']['password'])['algo'] === 0) {
+            $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
+        }
+
         return $data;
     }
 
-    /**
-     * Find a user by NIP
-     */
     public function findByNIP(string $nip)
     {
         return $this->where('nip', $nip)->first();
     }
 
-    /**
-     * Verify if the provided password matches the stored password for a user
-     */
-    public function verifyPassword($password, $hash): bool
+    public function findByEmail(string $email)
     {
-        return password_verify($password, $hash);
+        return $this->where('email', $email)->first();
     }
 
-    /**
-     * Change user password
-     */
-    public function changePassword($userId, $newPassword)
+    public function verifyPassword(string $inputPassword, string $storedHash): bool
+    {
+        return password_verify($inputPassword, $storedHash);
+    }
+
+    public function changePassword(int $userId, string $newPassword)
     {
         return $this->update($userId, [
-            'password' => password_hash($newPassword, PASSWORD_DEFAULT)
+            'password' => $newPassword
         ]);
     }
 
-    /**
-     * Get all users (with search filtering capability)
-     */
     public function getAllUsers($search = null)
     {
         $builder = $this->builder();
@@ -112,12 +90,8 @@ class UserModel extends Model
         return $builder->get()->getResultArray();
     }
 
-    /**
-     * Get study programs list from the migration enum
-     */
     public function getStudyPrograms()
     {
-        // Return friendly labels for the enum values
         return [
             'Bisnis Digital',
             'Informatika',
@@ -127,20 +101,41 @@ class UserModel extends Model
         ];
     }
 
-    // Add a method to check DB errors
     public function getLastError()
     {
         return $this->db->error();
     }
 
-    // Override insert to add better error handling
     public function insert($data = null, bool $returnID = true)
     {
         try {
             return parent::insert($data, $returnID);
         } catch (\Exception $e) {
-            log_message('error', 'Insert failed: ' . $e->getMessage());
-            throw $e; // Re-throw to be caught in the controller
+            throw $e;
         }
+    }
+
+    public function findByRole(string $role)
+    {
+        return $this->where('role', $role)->findAll();
+    }
+
+    public function countByRole(string $role)
+    {
+        return $this->where('role', $role)->countAllResults();
+    }
+
+    public function getStatistics()
+    {
+        $stats = [
+            'total' => $this->countAll(),
+            'admin' => $this->countByRole('admin'),
+            'dekan' => $this->countByRole('dekan'),
+            'kaprodi' => $this->countByRole('kaprodi'),
+            'dosen' => $this->countByRole('dosen'),
+            'staff' => $this->countByRole('staff'),
+        ];
+
+        return $stats;
     }
 }

@@ -101,7 +101,7 @@ class UserController extends BaseController
                 'position' => htmlspecialchars($this->request->getPost('position')),
                 'email' => $this->request->getPost('email'),
                 'role' => $this->request->getPost('role'),
-                'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+                'password' => $this->request->getPost('password'),
             ];
 
             $studyProgram = $this->request->getPost('study_program');

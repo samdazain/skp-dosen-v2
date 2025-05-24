@@ -24,6 +24,8 @@ $routes->get('/', [DashboardController::class, 'index']);
 $routes->get('/login', [AuthController::class, 'index']);
 $routes->post('/login', [AuthController::class, 'login']);
 $routes->get('/logout', [AuthController::class, 'logout']);
+$routes->get('/change-password', [AuthController::class, 'changePassword']);
+$routes->post('/change-password', [AuthController::class, 'changePassword']);
 
 // Protected Routes (Require Authentication)
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
@@ -34,7 +36,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->group('semester', function ($routes) {
         $routes->get('/', 'SemesterController::index');
         $routes->get('current', 'SemesterController::current');
-        $routes->match(['get', 'post'], 'change', 'SemesterController::change');
+        $routes->match(['GET', 'POST'], 'change', 'SemesterController::change');
     });
 
     // SKP

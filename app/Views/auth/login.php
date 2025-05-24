@@ -29,31 +29,36 @@
             <div class="alert alert-danger"><?= session('error') ?></div>
         <?php endif; ?>
 
-        <form action="<?= base_url('login') ?>" method="post" autocomplete="on">
-            <div class="input-container">
-                <div class="input-icon">
-                    <div class="icon-user"></div>
-                </div>
-                <input type="text" class="input-field" name="nip" id="nip" placeholder="NIP" autocomplete="username"
-                    required />
+        <?php if (session()->has('message')): ?>
+            <div class="alert alert-success"><?= session('message') ?></div>
+        <?php endif; ?>
+
+        <?= form_open(base_url('login'), ['autocomplete' => 'on']) ?>
+        <div class="input-container">
+            <div class="input-icon">
+                <div class="icon-user"></div>
             </div>
-
-            <div class="input-container">
-                <div class="input-icon">
-                    <div class="icon-lock"></div>
-                </div>
-                <input type="password" class="input-field" name="password" placeholder="Password"
-                    autocomplete="current-password" required />
-            </div>
-
-            <button type="submit" class="login-btn">Login</button>
-        </form>
-
-        <div class="credentials-info">
-            <p><strong>Demo Credentials:</strong></p>
-            <p>NIP: 123456789 | Password: password</p>
-            <p>NIP: admin | Password: password</p>
+            <input type="text" class="input-field" name="nip" id="nip" placeholder="NIP" value="<?= old('nip') ?>"
+                autocomplete="username" required />
         </div>
+
+        <div class="input-container">
+            <div class="input-icon">
+                <div class="icon-lock"></div>
+            </div>
+            <input type="password" class="input-field" name="password" placeholder="Password"
+                autocomplete="current-password" required />
+        </div>
+
+        <button type="submit" class="login-btn">Login</button>
+        <?= form_close() ?>
+
+        <?php if (ENVIRONMENT === 'development'): ?>
+            <div class="credentials-info">
+                <p><strong>Demo Credentials:</strong></p>
+                <p>NIP: 199001012015041001 | Password: password</p>
+            </div>
+        <?php endif; ?>
     </div>
 
     <!-- Custom JS -->
