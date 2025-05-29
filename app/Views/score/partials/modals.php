@@ -80,13 +80,22 @@
                             Nilai (Skor)
                         </label>
                         <div class="input-group">
-                            <input type="number" class="form-control" id="score" name="score" required min="0" max="100" placeholder="0">
+                            <input type="number"
+                                class="form-control"
+                                id="score"
+                                name="score"
+                                required
+                                min="0"
+                                max="100"
+                                step="1"
+                                placeholder="0">
                             <div class="input-group-append">
                                 <span class="input-group-text">poin</span>
                             </div>
                         </div>
                         <small class="form-text text-muted">
-                            Nilai yang akan diberikan untuk rentang ini (0-100)
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Nilai yang akan diberikan untuk rentang ini (0-100, bilangan bulat tanpa desimal)
                         </small>
                     </div>
                 </div>

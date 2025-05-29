@@ -77,3 +77,7 @@
 <!-- Page-specific scripts -->
 <?= view('score/partials/scripts') ?>
 <?= $this->endSection() ?>
+
+<?= $this->section('styles') ?>
+<link rel="stylesheet" href="<?= base_url('assets/css/score_management.css') ?>">
+<?= $this->endSection() ?>

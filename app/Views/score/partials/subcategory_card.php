@@ -46,8 +46,15 @@
                     <small class="text-muted">
                         <i class="fas fa-info-circle mr-1"></i>
                         Total <?= count($subcategory['ranges']) ?> rentang nilai
+                        <?php if (count($subcategory['ranges']) > 0): ?>
+                            <span class="ml-2">
+                                <i class="fas fa-save mr-1"></i>
+                                Tekan "Simpan Perubahan" untuk menyimpan
+                            </span>
+                        <?php endif; ?>
                     </small>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary"
+                        <?= count($subcategory['ranges']) === 0 ? 'disabled' : '' ?>>
                         <i class="fas fa-save mr-1"></i>
                         Simpan Perubahan
                     </button>

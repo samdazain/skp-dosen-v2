@@ -2,18 +2,28 @@
 
 namespace App\Controllers;
 
+use App\Models\ScoreModel;
+
 class ScoreController extends BaseController
 {
+    protected $scoreModel;
+
+    public function __construct()
+    {
+        $this->scoreModel = new ScoreModel();
+    }
+
     /**
      * Display the score management interface
      */
     public function index()
     {
-        // Ensure user is logged in and is an admin
+        // Ensure user is logged in
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
+        // Check if user has admin role (uncomment when role system is implemented)
         // if (session()->get('user_role') !== 'admin') {
         //     return redirect()->to('dashboard')->with('error', 'Anda tidak memiliki akses ke fitur ini');
         // }
@@ -23,9 +33,13 @@ class ScoreController extends BaseController
             'role' => session()->get('user_role'),
         ];
 
-        // In a real application, you would load data from the database
-        // For now, we'll just use dummy data
-        $scoreRanges = $this->getDummyScoreRanges();
+        // Initialize default ranges if none exist
+        if (!$this->scoreModel->hasDefaultRanges()) {
+            $this->scoreModel->initializeDefaultRanges();
+        }
+
+        // Get score ranges from database
+        $scoreRanges = $this->scoreModel->getAllScoreRanges();
 
         return view('score/index', [
             'pageTitle' => 'Setting Nilai | SKP Dosen',
@@ -37,15 +51,11 @@ class ScoreController extends BaseController
     /**
      * Update score range data
      */
-    public function updateScoreRanges()
+    public function updateRanges()
     {
-        // Ensure user is logged in and is an admin
+        // Ensure user is logged in and authorized
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
-        }
-
-        if (session()->get('user_role') !== 'admin') {
-            return redirect()->to('dashboard')->with('error', 'Anda tidak memiliki akses ke fitur ini');
         }
 
         // Get POST data
@@ -53,173 +63,285 @@ class ScoreController extends BaseController
         $subcategory = $this->request->getPost('subcategory');
         $ranges = $this->request->getPost('ranges');
 
-        // In a real application, you would validate and update the database
-        // For now, we'll just redirect back with a success message
+        if (!$category || !$subcategory || !$ranges) {
+            return redirect()->to('score')->with('error', 'Data tidak lengkap');
+        }
 
-        return redirect()->to('score')->with('success', 'Rentang nilai berhasil diperbarui');
+        try {
+            $updatedCount = 0;
+
+            // Update each range
+            foreach ($ranges as $rangeId => $rangeData) {
+                // Get existing range to validate
+                $existingRange = $this->scoreModel->find($rangeId);
+                if (!$existingRange) {
+                    continue; // Skip if range doesn't exist
+                }
+
+                // Prepare update data
+                $updateData = [];
+
+                // Always update score (force integer)
+                if (isset($rangeData['score'])) {
+                    $updateData['score'] = (int)$rangeData['score'];
+                }
+
+                // Handle range values based on type and category
+                $useIntegers = in_array($existingRange['category'], ['integrity', 'discipline']);
+
+                // Update range_start if provided
+                if (isset($rangeData['start']) && $rangeData['start'] !== '') {
+                    $updateData['range_start'] = $useIntegers ? (int)$rangeData['start'] : (float)$rangeData['start'];
+                } elseif (isset($rangeData['start']) && $rangeData['start'] === '') {
+                    $updateData['range_start'] = null;
+                }
+
+                // Update range_end if provided
+                if (isset($rangeData['end']) && $rangeData['end'] !== '') {
+                    $updateData['range_end'] = $useIntegers ? (int)$rangeData['end'] : (float)$rangeData['end'];
+                } elseif (isset($rangeData['end']) && $rangeData['end'] === '') {
+                    $updateData['range_end'] = null;
+                }
+
+                // Update range_label if provided
+                if (isset($rangeData['label'])) {
+                    $updateData['range_label'] = trim($rangeData['label']);
+                }
+
+                // Update range_type if provided
+                if (isset($rangeData['type'])) {
+                    $updateData['range_type'] = $rangeData['type'];
+                }
+
+                // Only update if there are changes
+                if (!empty($updateData)) {
+                    $this->scoreModel->updateRange($rangeId, $updateData);
+                    $updatedCount++;
+                }
+            }
+
+            if ($updatedCount > 0) {
+                return redirect()->to('score')->with('success', "Berhasil memperbarui {$updatedCount} rentang nilai");
+            } else {
+                return redirect()->to('score')->with('info', 'Tidak ada perubahan yang disimpan');
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error updating score ranges: ' . $e->getMessage());
+            return redirect()->to('score')->with('error', 'Gagal memperbarui rentang nilai: ' . $e->getMessage());
+        }
     }
 
     /**
      * Add a new score range
      */
-    public function addScoreRange()
+    public function addRange()
     {
-        // Ensure user is logged in and is an admin
+        // Ensure user is logged in and authorized
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        if (session()->get('user_role') !== 'admin') {
-            return redirect()->to('dashboard')->with('error', 'Anda tidak memiliki akses ke fitur ini');
+        // Validation rules
+        $rules = [
+            'category' => 'required',
+            'subcategory' => 'required',
+            'range_type' => 'required|in_list[range,above,below,exact,fixed,boolean]',
+            'score' => 'required|integer|greater_than_equal_to[0]|less_than_equal_to[100]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->to('score')->with('error', 'Data tidak valid');
         }
 
-        // Get POST data
+        try {
+            $category = $this->request->getPost('category');
+            $useIntegers = in_array($category, ['integrity', 'discipline']);
+
+            $data = [
+                'category' => $category,
+                'subcategory' => $this->request->getPost('subcategory'),
+                'range_type' => $this->request->getPost('range_type'),
+                'range_start' => $this->request->getPost('range_start') ?
+                    ($useIntegers ? (int)$this->request->getPost('range_start') : (float)$this->request->getPost('range_start')) : null,
+                'range_end' => $this->request->getPost('range_end') ?
+                    ($useIntegers ? (int)$this->request->getPost('range_end') : (float)$this->request->getPost('range_end')) : null,
+                'range_label' => $this->request->getPost('range_label'),
+                'score' => (int)$this->request->getPost('score'),
+                'editable' => true
+            ];
+
+            $this->scoreModel->addRange($data);
+
+            return redirect()->to('score')->with('success', 'Rentang nilai baru berhasil ditambahkan');
+        } catch (\Exception $e) {
+            log_message('error', 'Error adding score range: ' . $e->getMessage());
+            return redirect()->to('score')->with('error', 'Gagal menambahkan rentang nilai: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get score for specific input (AJAX)
+     */
+    public function getScoreForInput()
+    {
+        if (!$this->request->isAJAX()) {
+            return redirect()->to('score');
+        }
+
         $category = $this->request->getPost('category');
         $subcategory = $this->request->getPost('subcategory');
-        $rangeStart = $this->request->getPost('range_start');
-        $rangeEnd = $this->request->getPost('range_end');
-        $score = $this->request->getPost('score');
+        $value = $this->request->getPost('value');
 
-        // In a real application, you would validate and update the database
-        // For now, we'll just redirect back with a success message
+        if (!$category || !$subcategory || $value === null) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
 
-        return redirect()->to('score')->with('success', 'Rentang nilai baru berhasil ditambahkan');
+        try {
+            $score = (int)$this->scoreModel->calculateScore($category, $subcategory, $value);
+            $ranges = $this->scoreModel->getRangesBySubcategory($category, $subcategory);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'score' => $score,
+                'ranges' => $ranges,
+                'message' => "Nilai {$value} mendapat skor {$score} poin"
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error getting score for input: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menghitung skor'
+            ]);
+        }
     }
 
     /**
      * Delete a score range
      */
-    public function deleteScoreRange()
+    public function deleteRange()
     {
-        // Ensure user is logged in and is an admin
+        // Ensure user is logged in and authorized
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        if (session()->get('user_role') !== 'admin') {
-            return redirect()->to('dashboard')->with('error', 'Anda tidak memiliki akses ke fitur ini');
-        }
-
-        // Get POST data
         $rangeId = $this->request->getPost('range_id');
 
-        // In a real application, you would delete from the database
-        // For now, we'll just redirect back with a success message
+        if (!$rangeId) {
+            return redirect()->to('score')->with('error', 'ID rentang nilai tidak valid');
+        }
 
-        return redirect()->to('score')->with('success', 'Rentang nilai berhasil dihapus');
+        try {
+            // Check if range exists
+            $range = $this->scoreModel->find($rangeId);
+            if (!$range) {
+                return redirect()->to('score')->with('error', 'Rentang nilai tidak ditemukan');
+            }
+
+            // // Check if range is editable
+            // if (!$range->editable) {
+            //     return redirect()->to('score')->with('error', 'Rentang nilai ini tidak dapat dihapus');
+            // }
+
+            $this->scoreModel->deleteRange($rangeId);
+
+            return redirect()->to('score')->with('success', 'Rentang nilai berhasil dihapus');
+        } catch (\Exception $e) {
+            log_message('error', 'Error deleting score range: ' . $e->getMessage());
+            return redirect()->to('score')->with('error', 'Gagal menghapus rentang nilai');
+        }
     }
 
     /**
-     * Get dummy score range data for demonstration
+     * Calculate score for given values
      */
-    private function getDummyScoreRanges()
+    public function calculateScore()
     {
-        return [
-            'integrity' => [
-                'title' => 'Data Integritas',
-                'subcategories' => [
-                    'teaching_attendance' => [
-                        'title' => 'Kehadiran Mengajar',
-                        'ranges' => [
-                            ['id' => 1, 'start' => 0, 'end' => 4, 'score' => 60, 'label' => '0-4'],
-                            ['id' => 2, 'start' => 5, 'end' => 8, 'score' => 75, 'label' => '5-8'],
-                            ['id' => 3, 'start' => 8, 'end' => 10, 'score' => 85, 'label' => '8-10'],
-                            ['id' => 4, 'start' => 10, 'end' => null, 'score' => 88, 'label' => '>10'],
-                        ]
-                    ],
-                    'courses_taught' => [
-                        'title' => 'Jumlah MK di Ampu',
-                        'ranges' => [
-                            ['id' => 5, 'start' => 1, 'end' => 2, 'score' => 75, 'label' => '1-2'],
-                            ['id' => 6, 'start' => 3, 'end' => 4, 'score' => 80, 'label' => '3-4'],
-                            ['id' => 7, 'start' => 5, 'end' => 6, 'score' => 85, 'label' => '5-6'],
-                            ['id' => 8, 'start' => 6, 'end' => null, 'score' => 88, 'label' => '>6'],
-                        ]
-                    ]
-                ]
-            ],
-            'discipline' => [
-                'title' => 'Data Disiplin',
-                'subcategories' => [
-                    'daily_attendance' => [
-                        'title' => 'Presensi Harian (jumlah alpha)',
-                        'ranges' => [
-                            ['id' => 9, 'start' => 1, 'end' => 2, 'score' => 85, 'label' => '1-2'],
-                            ['id' => 10, 'start' => 3, 'end' => 4, 'score' => 80, 'label' => '3-4'],
-                            ['id' => 11, 'start' => 5, 'end' => 6, 'score' => 75, 'label' => '5-6'],
-                            ['id' => 12, 'start' => 6, 'end' => null, 'score' => 60, 'label' => '>6'],
-                        ]
-                    ],
-                    'morning_exercise' => [
-                        'title' => 'Presensi Senam Pagi (jumlah alpha)',
-                        'ranges' => [
-                            ['id' => 13, 'start' => 0, 'end' => 0, 'score' => 88, 'label' => '0'],
-                            ['id' => 14, 'start' => 1, 'end' => 2, 'score' => 85, 'label' => '1-2'],
-                            ['id' => 15, 'start' => 3, 'end' => 4, 'score' => 80, 'label' => '3-4'],
-                            ['id' => 16, 'start' => 5, 'end' => 6, 'score' => 75, 'label' => '5-6'],
-                            ['id' => 17, 'start' => 7, 'end' => 8, 'score' => 70, 'label' => '7-8'],
-                            ['id' => 18, 'start' => 8, 'end' => null, 'score' => 60, 'label' => '>8 atau 3 kali berturut alpha'],
-                        ]
-                    ],
-                    'ceremony_attendance' => [
-                        'title' => 'Presensi Upacara (jumlah alpha)',
-                        'ranges' => [
-                            ['id' => 19, 'start' => 0, 'end' => 0, 'score' => 88, 'label' => '0'],
-                            ['id' => 20, 'start' => 1, 'end' => 2, 'score' => 80, 'label' => '1-2'],
-                            ['id' => 21, 'start' => 3, 'end' => 4, 'score' => 70, 'label' => '3-4'],
-                            ['id' => 22, 'start' => 4, 'end' => null, 'score' => 60, 'label' => '>4'],
-                        ]
-                    ]
-                ]
-            ],
-            'commitment' => [
-                'title' => 'Data Komitmen',
-                'subcategories' => [
-                    'competency' => [
-                        'title' => 'Kompetensi (aktif)',
-                        'ranges' => [
-                            ['id' => 23, 'start' => null, 'end' => null, 'score' => 88, 'label' => 'Ada', 'type' => 'boolean', 'value' => true],
-                            ['id' => 24, 'start' => null, 'end' => null, 'score' => 70, 'label' => 'Tidak', 'type' => 'boolean', 'value' => false],
-                        ]
-                    ],
-                    'tri_dharma' => [
-                        'title' => 'Tri Dharma (BKD)',
-                        'ranges' => [
-                            ['id' => 25, 'start' => null, 'end' => null, 'score' => 88, 'label' => 'Lulus', 'type' => 'boolean', 'value' => true],
-                            ['id' => 26, 'start' => null, 'end' => null, 'score' => 70, 'label' => 'Tidak Lulus', 'type' => 'boolean', 'value' => false],
-                        ]
-                    ]
-                ]
-            ],
-            'cooperation' => [
-                'title' => 'Kerjasama (Koprodi / Dekanat)',
-                'subcategories' => [
-                    'cooperation_level' => [
-                        'title' => 'Tingkat Kerjasama',
-                        'ranges' => [
-                            ['id' => 27, 'start' => null, 'end' => null, 'score' => 60, 'label' => 'Tidak Kooperatif', 'type' => 'fixed'],
-                            ['id' => 28, 'start' => null, 'end' => null, 'score' => 75, 'label' => 'Cukup Kooperatif', 'type' => 'fixed'],
-                            ['id' => 29, 'start' => null, 'end' => null, 'score' => 80, 'label' => 'Kooperatif', 'type' => 'fixed'],
-                            ['id' => 30, 'start' => null, 'end' => null, 'score' => 88, 'label' => 'Sangat Kooperatif', 'type' => 'fixed'],
-                        ]
-                    ]
-                ]
-            ],
-            'orientation' => [
-                'title' => 'Orientasi Pelayanan',
-                'subcategories' => [
-                    'teaching_questionnaire' => [
-                        'title' => 'Kuisioner Mengajar',
-                        'ranges' => [
-                            ['id' => 31, 'start' => 3.5, 'end' => null, 'score' => 88, 'label' => '>3.5'],
-                            ['id' => 32, 'start' => 3, 'end' => 3.5, 'score' => 85, 'label' => '3 - 3.5'],
-                            ['id' => 33, 'start' => 2.75, 'end' => 3, 'score' => 80, 'label' => '2.75 - 3'],
-                            ['id' => 34, 'start' => 2.5, 'end' => 2.75, 'score' => 70, 'label' => '2.5 - 2.75'],
-                            ['id' => 35, 'start' => null, 'end' => 2.5, 'score' => 60, 'label' => '<2.5'],
-                        ]
-                    ]
-                ]
-            ]
-        ];
+        if (!$this->request->isAJAX()) {
+            return redirect()->to('score');
+        }
+
+        $category = $this->request->getPost('category');
+        $subcategory = $this->request->getPost('subcategory');
+        $value = $this->request->getPost('value');
+
+        if (!$category || !$subcategory || $value === null) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Data tidak lengkap'
+            ]);
+        }
+
+        try {
+            $score = (int)$this->scoreModel->calculateScore($category, $subcategory, $value);
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'score' => $score,
+                'message' => 'Skor berhasil dihitung'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error calculating score: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Gagal menghitung skor'
+            ]);
+        }
+    }
+
+    /**
+     * Reset score ranges to default
+     */
+    public function resetToDefault()
+    {
+        // Ensure user is logged in and authorized
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        // Additional security check for admin role
+        // if (session()->get('user_role') !== 'admin') {
+        //     return redirect()->to('dashboard')->with('error', 'Anda tidak memiliki akses ke fitur ini');
+        // }
+
+        try {
+            // Delete all existing ranges
+            $this->scoreModel->where('editable', true)->delete();
+
+            // Initialize default ranges
+            $this->scoreModel->initializeDefaultRanges();
+
+            return redirect()->to('score')->with('success', 'Rentang nilai berhasil direset ke default');
+        } catch (\Exception $e) {
+            log_message('error', 'Error resetting score ranges: ' . $e->getMessage());
+            return redirect()->to('score')->with('error', 'Gagal mereset rentang nilai');
+        }
+    }
+
+    /**
+     * Export score ranges configuration
+     */
+    public function exportConfig()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        try {
+            $ranges = $this->scoreModel->findAll();
+
+            $filename = 'score_ranges_config_' . date('Y-m-d_H-i-s') . '.json';
+
+            return $this->response
+                ->setHeader('Content-Type', 'application/json')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->setBody(json_encode($ranges, JSON_PRETTY_PRINT));
+        } catch (\Exception $e) {
+            log_message('error', 'Error exporting score config: ' . $e->getMessage());
+            return redirect()->to('score')->with('error', 'Gagal mengekspor konfigurasi');
+        }
     }
 }

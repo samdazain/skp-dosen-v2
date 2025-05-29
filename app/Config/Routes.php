@@ -110,9 +110,12 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // Score Config (Admin only — consider adding admin filter if needed)
     $routes->group('score', static function ($routes) {
         $routes->get('', 'ScoreController::index');
-        $routes->post('update-ranges', 'ScoreController::updateScoreRanges');
-        $routes->post('add-range', 'ScoreController::addScoreRange');
-        $routes->post('delete-range', 'ScoreController::deleteScoreRange');
+        $routes->post('update-ranges', 'ScoreController::updateRanges');
+        $routes->post('add-range', 'ScoreController::addRange');
+        $routes->post('delete-range', 'ScoreController::deleteRange');
+        $routes->get('calculate', 'ScoreController::calculateScore');
+        $routes->post('reset-default', 'ScoreController::resetToDefault');
+        $routes->get('export-config', 'ScoreController::exportConfig');
     });
 
     // User Management

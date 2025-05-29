@@ -1,0 +1,41 @@
+/* Score Management Styles */
+.score-input {
+  text-align: center;
+  font-weight: bold;
+}
+
+.score-input::-webkit-outer-spin-button,
+.score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.score-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.score-preview {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.range-table .input-group-text {
+  font-size: 0.875rem;
+}
+
+.score-integer-hint {
+  color: #6c757d;
+  font-size: 0.75rem;
+  font-style: italic;
+}
