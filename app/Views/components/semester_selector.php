@@ -9,7 +9,18 @@
 
 $semesters = $semesters ?? [];
 $semesterModel = $semesterModel ?? new \App\Models\SemesterModel();
-$activeSemester = $activeSemester ?? null;
+
+// If no active semester is set or session is empty, use the dynamic logic
+if (!$activeSemester || !session()->get('activeSemesterId')) {
+    $activeSemester = $semesterModel->getCurrentSemester();
+
+    // Debug current month logic
+    if (ENVIRONMENT === 'development') {
+        $currentMonth = (int)date('n');
+        log_message('debug', 'Semester Selector - Current month: ' . $currentMonth);
+        log_message('debug', 'Semester Selector - Auto-selected semester: ' . json_encode($activeSemester));
+    }
+}
 
 // Get active semester ID from session
 $activeSemesterId = session()->get('activeSemesterId');
@@ -29,8 +40,11 @@ if (ENVIRONMENT === 'development') {
 ?>
 
 <div class="semester-selector" data-base-url="<?= base_url() ?>"
-    data-active-semester-id="<?= $activeSemester ? $activeSemester['id'] : '' ?>" data-csrf-token="<?= csrf_hash() ?>"
-    data-csrf-name="<?= csrf_token() ?>">
+    data-active-semester-id="<?= $activeSemester ? $activeSemester['id'] : '' ?>"
+    data-csrf-token="<?= csrf_hash() ?>"
+    data-csrf-name="<?= csrf_token() ?>"
+    data-current-month="<?= date('n') ?>"
+    data-current-year="<?= date('Y') ?>">
     <div class="dropdown">
         <button class="btn btn-outline-primary btn-sm dropdown-toggle d-flex align-items-center" type="button"
             id="semesterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -84,12 +98,21 @@ if (ENVIRONMENT === 'development') {
                 <div class="dropdown-item-text text-center py-3">
                     <i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i>
                     <div class="text-muted">Tidak ada semester tersedia</div>
+                    <small class="text-info">
+                        Semester akan dipilih otomatis berdasarkan bulan saat ini (<?= date('F Y') ?>)
+                    </small>
                 </div>
                 <div class="dropdown-divider"></div>
                 <a class="dropdown-item d-flex align-items-center py-2 text-success"
-                    href="<?= base_url('semester/create') ?>">
+                    href="<?= base_url('semesters/create') ?>">
                     <i class="fas fa-plus mr-3 fa-lg"></i>
                     <span>Tambah Semester</span>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item d-flex align-items-center py-2 text-primary"
+                    href="#" onclick="initializeSemester()">
+                    <i class="fas fa-sync mr-3 fa-lg"></i>
+                    <span>Atur Semester Otomatis</span>
                 </a>
             <?php endif; ?>
         </div>
@@ -110,3 +133,70 @@ if (ENVIRONMENT === 'development') {
 <?php endif; ?>
 
 <script src="<?= base_url('assets/js/semester_selector.js') ?>"></script>
+
+<!-- Add initialization function -->
+<script>
+    function initializeSemester() {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Mengatur Semester Otomatis...',
+                text: 'Memilih semester berdasarkan tanggal saat ini',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+        }
+
+        fetch(baseUrl + 'semesters/initializeSemester', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Berhasil!',
+                            text: data.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        alert(data.message);
+                        location.reload();
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Gagal',
+                            text: data.message || 'Terjadi kesalahan'
+                        });
+                    } else {
+                        alert('Error: ' + (data.message || 'Terjadi kesalahan'));
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Terjadi kesalahan saat mengatur semester'
+                    });
+                } else {
+                    alert('Terjadi kesalahan saat mengatur semester');
+                }
+            });
+    }
+</script>

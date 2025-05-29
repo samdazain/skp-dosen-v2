@@ -119,19 +119,8 @@ class SemesterController extends BaseController
             return redirect()->to('/login');
         }
 
-        $activeSemesterId = session()->get('activeSemesterId');
-
-        if ($activeSemesterId) {
-            $semester = $this->semesterModel->getSemesterById($activeSemesterId);
-        } else {
-            $semester = $this->semesterModel->getCurrentSemester();
-
-            // Set as active in session
-            if ($semester) {
-                session()->set('activeSemesterId', $semester['id']);
-                session()->set('activeSemesterText', $this->semesterModel->formatSemester($semester));
-            }
-        }
+        // Use the enhanced getCurrentSemester method which handles dynamic selection
+        $semester = $this->semesterModel->getCurrentSemester();
 
         if ($this->request->isAJAX()) {
             return $this->respond([
@@ -142,6 +131,38 @@ class SemesterController extends BaseController
         }
 
         return $semester;
+    }
+
+    /**
+     * Initialize semester for new login
+     * This method can be called when user logs in to set appropriate semester
+     */
+    public function initializeSemester()
+    {
+        if (!session()->get('isLoggedIn')) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Unauthorized']);
+            }
+            return redirect()->to('/login');
+        }
+
+        // Clear any existing semester session data
+        session()->remove('activeSemesterId');
+        session()->remove('activeSemesterText');
+
+        // Get the current semester (will auto-set based on date logic)
+        $semester = $this->semesterModel->getCurrentSemester();
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $semester,
+                'formattedSemester' => $semester ? $this->semesterModel->formatSemester($semester) : null,
+                'message' => 'Semester initialized based on current date'
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Semester telah diatur berdasarkan tanggal saat ini');
     }
 
     public function create()

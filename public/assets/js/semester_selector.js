@@ -35,9 +35,35 @@ document.addEventListener('DOMContentLoaded', function () {
     const csrfToken = semesterSelector.dataset.csrfToken;
     const csrfName = semesterSelector.dataset.csrfName;
 
+    // Get additional data attributes
+    const currentMonth = semesterSelector.dataset.currentMonth;
+    const currentYear = semesterSelector.dataset.currentYear;
+
     console.log('Semester selector loaded');
     console.log('Base URL:', baseUrl);
     console.log('Active semester ID:', activeSemesterId);
+    console.log('Current month:', currentMonth);
+    console.log('Current year:', currentYear);
+
+    // Log the semester selection logic
+    if (currentMonth) {
+        const monthInt = parseInt(currentMonth);
+        let expectedTerm, expectedYear;
+
+        if (monthInt >= 7) {
+            expectedTerm = '2';
+            expectedYear = currentYear;
+            console.log('Expected semester: Genap (term 2) for year', expectedYear, '(month >= 7)');
+        } else if (monthInt >= 2) {
+            expectedTerm = '1';
+            expectedYear = currentYear;
+            console.log('Expected semester: Ganjil (term 1) for year', expectedYear, '(month >= 2)');
+        } else {
+            expectedTerm = '2';
+            expectedYear = parseInt(currentYear) - 1;
+            console.log('Expected semester: Genap (term 2) for year', expectedYear, '(January)');
+        }
+    }
 
     // Handle semester option clicks
     const semesterOptions = document.querySelectorAll('.semester-option');
