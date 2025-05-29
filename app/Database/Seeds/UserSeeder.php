@@ -10,7 +10,7 @@ class UserSeeder extends Seeder
     {
         $data = [
             'nip' => '123123',
-            'name' => 'Administrator',
+            'name' => 'Samda Zain Rozaan',
             'email' => 'admin@fasilkom.com',
             'password' => password_hash('qweqwe123', PASSWORD_DEFAULT),
             'position' => 'System Administrator',

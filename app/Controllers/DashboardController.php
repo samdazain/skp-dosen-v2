@@ -2,22 +2,24 @@
 
 namespace App\Controllers;
 
+use App\Models\LecturerModel;
+
 class DashboardController extends BaseController
 {
-    /**
-     * Redirect ke halaman login
-     */
+    protected $lecturerModel;
+
+    public function __construct()
+    {
+        $this->lecturerModel = new LecturerModel();
+    }
+
     public function index()
     {
         return redirect()->to('login');
     }
 
-    /**
-     * Menampilkan halaman dashboard
-     */
     public function dashboard()
     {
-        // Pastikan user sudah login
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
@@ -27,9 +29,13 @@ class DashboardController extends BaseController
             'role' => session()->get('user_role'),
         ];
 
+        // Get lecturer statistics
+        $totalLecturers = $this->lecturerModel->countAll();
+
         return view('dashboard/index', [
             'pageTitle' => 'Dashboard | SKP Dosen',
-            'user' => $userData
+            'user' => $userData,
+            'totalLecturers' => $totalLecturers
         ]);
     }
 }

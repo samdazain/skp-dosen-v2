@@ -162,39 +162,10 @@ class CreateAllTables extends Migration
         $this->forge->addForeignKey('lecturer_id', 'lecturers', 'id');
         $this->forge->addForeignKey('semester_id', 'semesters', 'id');
         $this->forge->createTable('master_skp');
-
-        // Upload Log Table
-        $this->forge->addField([
-            'id'           => ['type' => 'INT', 'auto_increment' => true],
-            'filename'     => ['type' => 'VARCHAR', 'constraint' => 255],
-            'category'     => ['type' => 'VARCHAR', 'constraint' => 100],
-            'uploaded_by'  => ['type' => 'INT', 'unsigned' => true],
-            'uploaded_at'  => ['type' => 'DATETIME'],
-        ]);
-        $this->forge->addKey('id', true);
-        $this->forge->addForeignKey('uploaded_by', 'users', 'id');
-        $this->forge->createTable('upload_logs');
-
-        // Change Log Table
-        $this->forge->addField([
-            'id'          => ['type' => 'INT', 'auto_increment' => true],
-            'table_name'  => ['type' => 'VARCHAR', 'constraint' => 100],
-            'record_id'   => ['type' => 'INT'],
-            'changed_by'  => ['type' => 'INT', 'unsigned' => true],
-            'action'      => ['type' => 'ENUM', 'constraint' => ['insert', 'update', 'delete']],
-            'before'      => ['type' => 'TEXT', 'null' => true],
-            'after'       => ['type' => 'TEXT', 'null' => true],
-            'changed_at'  => ['type' => 'DATETIME'],
-        ]);
-        $this->forge->addKey('id', true);
-        $this->forge->addForeignKey('changed_by', 'users', 'id');
-        $this->forge->createTable('change_logs');
     }
 
     public function down()
     {
-        $this->forge->dropTable('change_logs');
-        $this->forge->dropTable('upload_logs');
         $this->forge->dropTable('master_skp');
         $this->forge->dropTable('service_orientation');
         $this->forge->dropTable('cooperation');

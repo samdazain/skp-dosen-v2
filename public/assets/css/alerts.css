@@ -1,0 +1,84 @@
+/* Custom Alert Styles */
+.alert {
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: none;
+  margin-bottom: 20px;
+}
+
+.alert-success {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #155724;
+  border-left: 4px solid #28a745;
+}
+
+.alert-danger {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  color: #721c24;
+  border-left: 4px solid #dc3545;
+}
+
+.alert-warning {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  color: #856404;
+  border-left: 4px solid #ffc107;
+}
+
+.alert h5 {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.alert .icon {
+  margin-right: 8px;
+}
+
+.error-details {
+  background: rgba(255, 255, 255, 0.3);
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.error-details ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.error-details li {
+  margin-bottom: 4px;
+  font-size: 0.9em;
+}
+
+/* Animation for alerts */
+.animated {
+  animation-duration: 0.5s;
+  animation-fill-mode: both;
+}
+
+.fadeIn {
+  animation-name: fadeIn;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Close button styling */
+.alert .close {
+  font-size: 1.2em;
+  font-weight: 600;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.alert .close:hover {
+  opacity: 1;
+}

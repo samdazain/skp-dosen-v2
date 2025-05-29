@@ -15,6 +15,7 @@ if (ENVIRONMENT === 'development') {
     $routes->group('debug', static function ($routes) {
         $routes->get('session', 'DebugController::testSession');
         $routes->get('database', 'DebugController::testDatabase');
+        $routes->get('excel', 'UploadController::debugExcel');
     });
 }
 
@@ -31,6 +32,14 @@ $routes->post('/change-password', [AuthController::class, 'changePassword']);
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // Dashboard
     $routes->get('/dashboard', 'DashboardController::dashboard');
+
+    // Upload routes
+    $routes->group('upload', static function ($routes) {
+        $routes->post('dosen', 'UploadController::uploadDosen');
+        $routes->post('integritas', 'UploadController::uploadIntegritas');
+        $routes->post('disiplin', 'UploadController::uploadDisiplin');
+        $routes->post('pelayanan', 'UploadController::uploadPelayanan');
+    });
 
     // Semester Selection
     $routes->group('semester', function ($routes) {
@@ -54,6 +63,9 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('edit/(:num)', 'LecturerController::edit/$1');
         $routes->put('update/(:num)', 'LecturerController::update/$1');
         $routes->delete('delete/(:num)', 'LecturerController::delete/$1');
+        // Tambahkan route export
+        $routes->get('export-excel', 'LecturerController::exportExcel');
+        $routes->get('export-pdf', 'LecturerController::exportPdf');
     });
 
     // Integrity

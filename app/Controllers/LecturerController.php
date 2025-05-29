@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\LecturerModel;
+use App\Services\ExcelExportService;
+use App\Services\PdfExportService;
 
 class LecturerController extends BaseController
 {
@@ -12,7 +14,7 @@ class LecturerController extends BaseController
     public function __construct()
     {
         $this->lecturerModel = new LecturerModel();
-        helper($this->helpers);
+        helper(['form', 'url', 'table']);
     }
 
     public function index()
@@ -23,14 +25,45 @@ class LecturerController extends BaseController
 
         $search = $this->request->getGet('search');
         $page = (int)($this->request->getGet('page') ?? 1);
-        $perPage = 10;
+        $perPage = (int)($this->request->getGet('per_page') ?? 10);
+        $sortBy = $this->request->getGet('sort_by') ?? 'name';
+        $sortOrder = $this->request->getGet('sort_order') ?? 'asc';
 
-        $result = $this->lecturerModel->getLecturers($search, $perPage, ($page - 1) * $perPage);
+        $allowedSortColumns = ['name', 'nip', 'position', 'study_program'];
+        $allowedSortOrders = ['asc', 'desc'];
+
+        if (!in_array($sortBy, $allowedSortColumns)) {
+            $sortBy = 'name';
+        }
+
+        if (!in_array($sortOrder, $allowedSortOrders)) {
+            $sortOrder = 'asc';
+        }
+
+        $allowedPerPage = [10, 25, 50, 100];
+        if (!in_array($perPage, $allowedPerPage)) {
+            $perPage = 10;
+        }
+
+        $result = $this->lecturerModel->getLecturers($search, $perPage, ($page - 1) * $perPage, $sortBy, $sortOrder);
         $total = $result['total'];
 
-        $pager = service('pager');
-        $pager->setPath('lecturers');
-        $pager->makeLinks($page, $perPage, $total);
+        $totalPages = (int)ceil($total / $perPage);
+        $paginationData = [
+            'currentPage' => $page,
+            'perPage' => $perPage,
+            'total' => $total,
+            'totalPages' => $totalPages,
+            'hasPages' => $totalPages > 1,
+            'hasPrevious' => $page > 1,
+            'hasNext' => $page < $totalPages,
+            'startRecord' => (($page - 1) * $perPage) + 1,
+            'endRecord' => min($page * $perPage, $total),
+            'baseUrl' => base_url('lecturers'),
+            'searchQuery' => $search ? '&search=' . urlencode($search) : '',
+            'perPageQuery' => '&per_page=' . $perPage,
+            'sortQuery' => '&sort_by=' . $sortBy . '&sort_order=' . $sortOrder
+        ];
 
         $lecturers = $result['lecturers'];
         foreach ($lecturers as &$lecturer) {
@@ -42,8 +75,13 @@ class LecturerController extends BaseController
         return view('lecturers/index', [
             'pageTitle' => 'Daftar Dosen | SKP Dosen',
             'lecturers' => $lecturers,
-            'pager' => $pager,
-            'search' => $search
+            'pagination' => $paginationData,
+            'search' => $search,
+            'total' => $total,
+            'currentPage' => $page,
+            'perPage' => $perPage,
+            'sortBy' => $sortBy,
+            'sortOrder' => $sortOrder
         ]);
     }
 
@@ -67,9 +105,9 @@ class LecturerController extends BaseController
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
+        $validation = \Config\Services::validation();
         $postData = $this->request->getPost();
         $position = $postData['position'] ?? '';
-
         $isLeadership = $this->lecturerModel->isLeadershipPosition($position);
 
         if ($isLeadership) {
@@ -91,7 +129,7 @@ class LecturerController extends BaseController
         if (!$this->validate($rules, $messages)) {
             return redirect()->back()
                 ->withInput()
-                ->with('errors', $this->validator->getErrors())
+                ->with('errors', $validation->getErrors())
                 ->with('error', 'Validation failed. Please check your input.');
         }
 
@@ -159,18 +197,18 @@ class LecturerController extends BaseController
             return redirect()->to('lecturers')->with('error', 'Dosen tidak ditemukan');
         }
 
+        $validation = \Config\Services::validation();
         $postData = $this->request->getPost();
         $position = $postData['position'] ?? '';
         $isLeadership = $this->lecturerModel->isLeadershipPosition($position);
 
-        // Pass the ID to getValidationRules to handle NIP uniqueness correctly
         $rules = $this->lecturerModel->getValidationRules($postData, $id);
         $messages = $this->lecturerModel->validationMessages;
 
         if (!$this->validate($rules, $messages)) {
             return redirect()->back()
                 ->withInput()
-                ->with('errors', $this->validator->getErrors());
+                ->with('errors', $validation->getErrors());
         }
 
         $data = [
@@ -211,6 +249,108 @@ class LecturerController extends BaseController
             return redirect()->to('lecturers')->with('success', 'Data dosen berhasil dihapus');
         } catch (\Exception $e) {
             return redirect()->to('lecturers')->with('error', 'Gagal menghapus data: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export data dosen ke Excel
+     */
+    public function exportExcel()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        try {
+            // Ambil parameter pencarian dari request
+            $search = $this->request->getGet('search');
+            $sortBy = $this->request->getGet('sort_by') ?? 'name';
+            $sortOrder = $this->request->getGet('sort_order') ?? 'asc';
+
+            // For export, we want to sort by position hierarchy regardless of user's current sort
+            // But still respect search filter
+            $result = $this->lecturerModel->getLecturers($search, 10000, 0, 'name', 'asc');
+            $lecturers = $result['lecturers'];
+            $total = $result['total'];
+
+            // Don't format study program here - let ExcelExportService handle it
+            // because we need the raw values for proper sorting and status determination
+
+            // Buat service export Excel
+            $excelService = new ExcelExportService();
+            $writer = $excelService->exportLecturers($lecturers, $search, $total);
+
+            // Set nama file
+            $filename = 'Data_Dosen_' . date('Y-m-d_H-i-s');
+            if ($search) {
+                $filename .= '_Pencarian_' . preg_replace('/[^a-zA-Z0-9]/', '_', $search);
+            }
+            $filename .= '.xlsx';
+
+            // Set header untuk download
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment;filename="' . $filename . '"');
+            header('Cache-Control: max-age=0');
+            header('Cache-Control: max-age=1');
+            header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+            header('Cache-Control: cache, must-revalidate');
+            header('Pragma: public');
+
+            // Output file
+            $writer->save('php://output');
+            exit;
+        } catch (\Exception $e) {
+            log_message('error', 'Export Excel Error: ' . $e->getMessage());
+            return redirect()->to('lecturers')
+                ->with('error', 'Gagal mengexport data: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Export data dosen ke PDF
+     */
+    public function exportPdf()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        try {
+            // Ambil parameter pencarian dari request
+            $search = $this->request->getGet('search');
+            $sortBy = $this->request->getGet('sort_by') ?? 'name';
+            $sortOrder = $this->request->getGet('sort_order') ?? 'asc';
+
+            // Ambil semua data (tanpa limit untuk export)
+            $result = $this->lecturerModel->getLecturers($search, 10000, 0, 'name', 'asc');
+            $lecturers = $result['lecturers'];
+            $total = $result['total'];
+
+            // Buat service export PDF
+            $pdfService = new PdfExportService();
+            $dompdf = $pdfService->exportLecturers($lecturers, $search, $total);
+
+            // Set nama file
+            $filename = 'Data_Dosen_' . date('Y-m-d_H-i-s');
+            if ($search) {
+                $filename .= '_Pencarian_' . preg_replace('/[^a-zA-Z0-9]/', '_', $search);
+            }
+            $filename .= '.pdf';
+
+            // Set header untuk download
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header('Cache-Control: private, max-age=0, must-revalidate');
+            header('Pragma: public');
+
+            // Output PDF
+            echo $pdfService->outputPdf();
+            exit;
+        } catch (\Exception $e) {
+            log_message('error', 'Export PDF Error: ' . $e->getMessage());
+            return redirect()->to('lecturers')
+                ->with('error', 'Gagal mengexport data ke PDF: ' . $e->getMessage());
         }
     }
 }

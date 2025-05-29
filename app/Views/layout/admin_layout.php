@@ -15,7 +15,10 @@ helper('navigation');
         const baseUrl = '<?= base_url() ?>';
     </script>
     <link rel="stylesheet" href="<?= base_url('assets/css/semester_selector.css') ?>">
-
+    <?= $this->section('styles') ?>
+    <link rel="stylesheet" href="<?= base_url('assets/css/alerts.css') ?>">
+    <?= $this->renderSection('styles') ?>
+    <?= $this->endSection() ?>
 </head>
 
 <body class="hold-transition sidebar-mini layout-fixed sidebar-collapse">

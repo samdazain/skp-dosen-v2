@@ -35,7 +35,7 @@ abstract class BaseController extends Controller
      *
      * @var list<string>
      */
-    protected $helpers = [];
+    protected $helpers = ['form', 'url', 'navigation', 'user', 'table'];
 
     /**
      * Be sure to declare properties for any property fetch you initialized.
@@ -67,7 +67,7 @@ abstract class BaseController extends Controller
 
         // Preload any models, libraries, etc, here.
         // Load helpers
-        helper(['url', 'form', 'navigation', 'user']);
+        helper($this->helpers);
 
         // E.g.: $this->session = service('session');
     }

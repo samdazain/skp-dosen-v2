@@ -83,7 +83,6 @@ class UserModel extends Model
                 ->orLike('nip', $search)
                 ->orLike('email', $search)
                 ->orLike('position', $search)
-                ->orLike('study_program', $search)
                 ->groupEnd();
         }
 

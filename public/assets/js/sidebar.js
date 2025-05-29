@@ -8,22 +8,41 @@ $(document).ready(function () {
     // Flag to check if any link has been marked as active
     let hasActiveLink = false;
 
-    // First pass - try to match exact path
+    // Improved path matching logic
     $('.nav-sidebar .nav-link').each(function () {
         const href = $(this).attr('href');
-        if (href === currentPath) {
+
+        // Skip empty or # hrefs
+        if (!href || href === '#') return;
+
+        // Remove trailing slashes for consistent comparison
+        const normalizedHref = href.replace(/\/$/, '');
+        const normalizedPath = currentPath.replace(/\/$/, '');
+
+        // Check if the current path starts with the menu item's path (for nested routes)
+        // But make sure we're matching complete path segments to avoid partial matches
+        if (
+            // Exact match
+            normalizedPath === normalizedHref ||
+            // Path starts with href and is followed by a slash or nothing
+            (normalizedPath.startsWith(normalizedHref + '/') && normalizedHref !== '/') ||
+            // Special case for section roots (like /lecturers, /discipline, etc.)
+            (normalizedPath.split('/')[1] === normalizedHref.split('/')[1] && normalizedHref !== '/dashboard')
+        ) {
             $(this).addClass('active');
             hasActiveLink = true;
+
+            // If this is a submenu item, also activate parent
+            const parentNav = $(this).closest('.has-treeview');
+            if (parentNav.length) {
+                parentNav.addClass('menu-open');
+                parentNav.find('> .nav-link').addClass('active');
+            }
         }
     });
 
-    // Second pass - if no active link and we're at root or /dashboard, activate dashboard
-    if (!hasActiveLink && (currentPath === '/' || currentPath === '/dashboard' || currentPath.startsWith('/dashboard/'))) {
-        $('.nav-sidebar .nav-link[href="/dashboard"]').addClass('active');
-    }
-
-    // If still no active link, set dashboard as default
-    if (!$('.nav-sidebar .nav-link.active').length) {
+    // Only set dashboard as active if we're actually on the dashboard or root
+    if (!hasActiveLink && (currentPath === '/' || currentPath === '/dashboard')) {
         $('.nav-sidebar .nav-link[href="/dashboard"]').addClass('active');
     }
 

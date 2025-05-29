@@ -3,85 +3,108 @@
 /**
  * @var CodeIgniter\View\View $this
  */
+
+// Define lecturer table columns
+$columns = [
+    [
+        'field' => 'number',
+        'label' => 'No',
+        'class' => 'text-center col-no',
+        'sortable' => false,
+        'render' => function ($row, $index) {
+            return "<span class='font-weight-bold'>{$index}</span>";
+        }
+    ],
+    [
+        'field' => 'name',
+        'label' => 'Nama Dosen',
+        'class' => 'col-name',
+        'sortable' => true,
+        'render' => function ($row, $index) {
+            return view('lecturers/partials/name_cell', ['lecturer' => $row]);
+        }
+    ],
+    [
+        'field' => 'nip',
+        'label' => 'NIP',
+        'class' => 'col-nip',
+        'sortable' => true,
+        'render' => function ($row, $index) {
+            return "<code class='bg-light text-dark px-2 py-1 rounded d-inline-block text-truncate' style='max-width: 100%;'>" . esc($row['nip']) . "</code>";
+        }
+    ],
+    [
+        'field' => 'position',
+        'label' => 'Jabatan',
+        'class' => 'col-position',
+        'sortable' => true,
+        'render' => function ($row, $index) {
+            return view('lecturers/partials/position_badge', ['position' => $row['position']]);
+        }
+    ],
+    [
+        'field' => 'study_program',
+        'label' => 'Program Studi',
+        'class' => 'text-center col-program',
+        'sortable' => true,
+        'render' => function ($row, $index) {
+            return view('lecturers/partials/program_badge', ['program' => $row['study_program'] ?? null]);
+        }
+    ],
+    [
+        'field' => 'actions',
+        'label' => 'Aksi',
+        'class' => 'text-center col-actions',
+        'sortable' => false,
+        'render' => function ($row, $index) {
+            return view('lecturers/partials/action_buttons', ['lecturer' => $row]);
+        }
+    ]
+];
+
+// Configure search
+$searchConfig = [
+    'searchUrl' => base_url('lecturers'),
+    'searchTerm' => $search ?? '',
+    'placeholder' => 'Cari nama atau NIP dosen...',
+    'hiddenFields' => [
+        'sort_by' => $sortBy ?? 'name',
+        'sort_order' => $sortOrder ?? 'asc',
+        'per_page' => $perPage ?? 10
+    ],
+    'showResults' => true
+];
+
+// Configure exports
+$exportConfig = [
+    'exports' => [
+        'excel' => [
+            'url' => base_url('lecturers/export-excel'),
+            'label' => 'Excel'
+        ],
+        'pdf' => [
+            'url' => base_url('lecturers/export-pdf'),
+            'label' => 'PDF'
+        ]
+    ]
+];
 ?>
 
-<div class="card">
-    <div class="card-header">
-        <h3 class="card-title">Data Dosen Fakultas</h3>
-        <div class="card-tools">
-            <a href="<?= base_url('lecturers/create') ?>" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus mr-1"></i> Tambah Dosen
-            </a>
-            <form action="<?= base_url('lecturers') ?>" method="get"
-                class="input-group input-group-sm ml-3 pt-1 float-right" style="width: 250px;">
-                <input type="text" name="search" class="form-control float-right" id="searchInput"
-                    placeholder="Cari dosen..." value="<?= $search ?? '' ?>">
-                <div class="input-group-append">
-                    <button type="submit" class="btn btn-default">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card-body table-responsive p-0">
-        <table class="table table-hover table-striped">
-            <thead>
-                <tr>
-                    <th class="text-center" style="width: 50px;">No</th>
-                    <th>Nama Dosen</th>
-                    <th>NIP</th>
-                    <th>Jabatan</th> <!-- Changed from Email to Jabatan -->
-                    <th class="text-center">Program Studi</th>
-                    <th class="text-center" style="width: 120px;">Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($lecturers)): ?>
-                    <tr>
-                        <td colspan="6" class="text-center py-4">Tidak ada data dosen</td>
-                    </tr>
-                <?php else: ?>
-                    <?php
-                    $start = 0;
-                    if (isset($pager)) {
-                        $start = ($pager->getCurrentPage() - 1) * $pager->getPerPage();
-                    }
-                    ?>
-                    <?php foreach ($lecturers as $i => $lecturer): ?>
-                        <tr>
-                            <td class="text-center"><?= $start + $i + 1 ?></td>
-                            <td><?= esc($lecturer['name']) ?></td>
-                            <td><?= esc($lecturer['nip']) ?></td>
-                            <td><?= esc($lecturer['position']) ?></td> <!-- Changed from email to position -->
-                            <td class="text-center">
-                                <?= !empty($lecturer['study_program']) ? esc($lecturer['study_program']) : '<span class="text-muted">-</span>' ?>
-                            </td>
-                            <td class="text-center">
-                                <div class="btn-group">
-                                    <a href="<?= base_url('lecturers/edit/' . $lecturer['id']) ?>"
-                                        class="btn btn-sm btn-warning" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-danger" title="Delete"
-                                        onclick="confirmDelete('<?= $lecturer['id'] ?>', '<?= esc($lecturer['name']) ?>')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="card-footer clearfix">
-        <?php if (isset($pager)): ?>
-            <div class="float-right">
-                <?= $pager->links() ?>
-            </div>
-        <?php endif; ?>
-    </div>
-</div>
+<?= view('Components/data_table', [
+    'title' => 'Data Dosen Fakultas',
+    'icon' => 'fas fa-users',
+    'data' => $lecturers,
+    'columns' => $columns,
+    'searchConfig' => $searchConfig,
+    'exportConfig' => $exportConfig,
+    'pagination' => $pagination ?? [],
+    'addUrl' => base_url('lecturers/create'),
+    'addLabel' => 'Tambah Dosen',
+    'emptyMessage' => 'Tidak ada data dosen',
+    'cssFile' => 'assets/css/lecturer_table.css',
+    'jsFile' => 'assets/js/lecturer_table.js',
+    // Pass current sorting parameters
+    'sortBy' => $sortBy ?? 'name',
+    'sortOrder' => $sortOrder ?? 'asc',
+    'perPage' => $perPage ?? 10
+]) ?>

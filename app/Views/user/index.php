@@ -67,7 +67,6 @@ helper('navigation');
                                 <th>Jabatan</th>
                                 <th>Email</th>
                                 <th>Role</th>
-                                <th>Program Studi</th>
                                 <?php if ($user['role'] === 'admin'): ?>
                                     <th style="width: 10%">Aksi</th>
                                 <?php endif; ?>
@@ -88,7 +87,6 @@ helper('navigation');
                                         <td><?= $userData['position'] ?></td>
                                         <td><?= $userData['email'] ?></td>
                                         <td><?= get_role_badge($userData['role']) ?></td>
-                                        <td><?= $userData['study_program'] ?? '-' ?></td>
                                         <?php if ($user['role'] === 'admin'): ?>
                                             <td>
                                                 <div class="btn-group btn-group-sm">

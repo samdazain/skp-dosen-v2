@@ -58,6 +58,28 @@ class LecturerModel extends Model
         'WAKIL DEKAN III'
     ];
 
+    public $validationMessages = [
+        'nip' => [
+            'required' => 'NIP harus diisi',
+            'min_length' => 'NIP minimal 10 karakter',
+            'max_length' => 'NIP maksimal 30 karakter',
+            'is_unique' => 'NIP sudah terdaftar'
+        ],
+        'name' => [
+            'required' => 'Nama harus diisi',
+            'min_length' => 'Nama minimal 3 karakter',
+            'max_length' => 'Nama maksimal 100 karakter'
+        ],
+        'position' => [
+            'required' => 'Jabatan harus diisi',
+            'in_list' => 'Jabatan tidak valid'
+        ],
+        'study_program' => [
+            'required' => 'Program studi harus diisi',
+            'in_list' => 'Program studi tidak valid'
+        ]
+    ];
+
     public function isLeadershipPosition($position)
     {
         $position = trim($position);
@@ -82,28 +104,6 @@ class LecturerModel extends Model
         return $rules;
     }
 
-    protected $validationMessages = [
-        'nip' => [
-            'required' => 'NIP harus diisi',
-            'min_length' => 'NIP minimal 10 karakter',
-            'max_length' => 'NIP maksimal 30 karakter',
-            'is_unique' => 'NIP sudah terdaftar'
-        ],
-        'name' => [
-            'required' => 'Nama harus diisi',
-            'min_length' => 'Nama minimal 3 karakter',
-            'max_length' => 'Nama maksimal 100 karakter'
-        ],
-        'position' => [
-            'required' => 'Jabatan harus diisi',
-            'in_list' => 'Jabatan tidak valid'
-        ],
-        'study_program' => [
-            'required' => 'Program studi harus diisi',
-            'in_list' => 'Program studi tidak valid'
-        ]
-    ];
-
     public function getPositions()
     {
         return $this->positions;
@@ -126,22 +126,91 @@ class LecturerModel extends Model
         return $programs[$studyProgram] ?? ucwords(str_replace('_', ' ', $studyProgram));
     }
 
-    public function getLecturers($search = null, $limit = 10, $offset = 0)
+    public function getLecturers($search = null, $limit = 10, $offset = 0, $sortBy = 'name', $sortOrder = 'asc')
     {
-        $builder = $this->builder();
+        $db = \Config\Database::connect();
 
-        if ($search) {
-            $builder->groupStart()
-                ->like('name', $search)
-                ->orLike('nip', $search)
-                ->orLike('position', $search)
-                ->orLike('study_program', $search)
-                ->groupEnd();
+        $sql = "SELECT * FROM lecturers WHERE 1=1";
+        $params = [];
+
+        if (!empty($search)) {
+            $sql .= " AND (name LIKE ? OR nip LIKE ? OR position LIKE ? OR study_program LIKE ?)";
+            $searchParam = "%{$search}%";
+            $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam]);
         }
 
+        $countSql = str_replace("SELECT *", "SELECT COUNT(*) as total", $sql);
+        $totalResult = $db->query($countSql, $params)->getRow();
+        $total = $totalResult->total;
+
+        $validSortColumns = ['name', 'nip', 'position', 'study_program'];
+        $validSortOrders = ['asc', 'desc'];
+
+        if (in_array($sortBy, $validSortColumns) && in_array($sortOrder, $validSortOrders)) {
+            if ($sortBy === 'study_program') {
+                if ($sortOrder === 'asc') {
+                    $sql .= " ORDER BY study_program IS NULL, study_program ASC";
+                } else {
+                    $sql .= " ORDER BY study_program IS NULL, study_program DESC";
+                }
+            } else {
+                $sql .= " ORDER BY {$sortBy} {$sortOrder}";
+            }
+        } else {
+            $sql .= " ORDER BY name ASC";
+        }
+
+        $sql .= " LIMIT ? OFFSET ?";
+        $params = array_merge($params, [$limit, $offset]);
+
+        $lecturers = $db->query($sql, $params)->getResultArray();
+
         return [
-            'lecturers' => $builder->limit($limit, $offset)->get()->getResultArray(),
-            'total' => $builder->countAllResults(false)
+            'lecturers' => $lecturers,
+            'total' => $total
         ];
+    }
+
+    /**
+     * Get all lecturers for export (tanpa pagination)
+     */
+    public function getAllLecturersForExport($search = null, $sortBy = 'name', $sortOrder = 'asc')
+    {
+        return $this->getLecturers($search, 10000, 0, $sortBy, $sortOrder);
+    }
+
+    /**
+     * Get statistics for export
+     */
+    public function getLecturerStatistics()
+    {
+        $db = \Config\Database::connect();
+
+        $stats = [
+            'total' => $this->countAll(),
+            'by_position' => [],
+            'by_study_program' => []
+        ];
+
+        // Statistik berdasarkan jabatan
+        $positionQuery = $db->query("
+            SELECT position, COUNT(*) as count 
+            FROM lecturers 
+            GROUP BY position 
+            ORDER BY count DESC
+        ");
+        $stats['by_position'] = $positionQuery->getResultArray();
+
+        // Statistik berdasarkan program studi
+        $programQuery = $db->query("
+            SELECT study_program, COUNT(*) as count 
+            FROM lecturers 
+            WHERE study_program IS NOT NULL 
+            GROUP BY study_program 
+            ORDER BY count DESC
+        ");
+        $stats['by_study_program'] = $programQuery->getResultArray();
+
+        return $stats;
     }
 }
