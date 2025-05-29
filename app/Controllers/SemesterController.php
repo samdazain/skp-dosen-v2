@@ -10,10 +10,12 @@ class SemesterController extends BaseController
     use ResponseTrait;
 
     protected $semesterModel;
+    protected $helpers = ['form', 'url'];
 
     public function __construct()
     {
         $this->semesterModel = new SemesterModel();
+        helper(['form', 'url']);
     }
 
     /**
@@ -27,6 +29,7 @@ class SemesterController extends BaseController
         }
 
         $semesters = $this->semesterModel->getAllSemesters();
+        $activeSemester = $this->semesterModel->getActiveSemester();
 
         // If AJAX request, return JSON
         if ($this->request->isAJAX()) {
@@ -50,16 +53,18 @@ class SemesterController extends BaseController
         // Check if user is logged in
         if (!session()->get('isLoggedIn')) {
             if ($this->request->isAJAX()) {
-                return $this->fail('Unauthorized', 401);
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Unauthorized']);
             }
             return redirect()->to('/login');
         }
 
-        $semesterId = $this->request->getVar('semester_id');
+        // Get JSON input
+        $json = $this->request->getJSON();
+        $semesterId = $json->semester_id ?? $this->request->getVar('semester_id');
 
         if (!$semesterId) {
             if ($this->request->isAJAX()) {
-                return $this->fail('Semester ID is required', 400);
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Semester ID is required']);
             }
             return redirect()->back()->with('error', 'Semester ID is required');
         }
@@ -68,28 +73,37 @@ class SemesterController extends BaseController
 
         if (!$semester) {
             if ($this->request->isAJAX()) {
-                return $this->fail('Semester not found', 404);
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Semester not found']);
             }
             return redirect()->back()->with('error', 'Semester not found');
         }
 
-        // Set semester in session
-        session()->set('activeSemesterId', $semesterId);
-        session()->set('activeSemesterText', $this->semesterModel->formatSemester($semester));
+        try {
+            // Set semester in session
+            session()->set('activeSemesterId', $semesterId);
+            session()->set('activeSemesterText', $this->semesterModel->formatSemester($semester));
 
-        $redirectUrl = $this->request->getVar('redirect') ?? base_url();
+            $redirectUrl = $json->redirect ?? $this->request->getVar('redirect') ?? base_url();
 
-        if ($this->request->isAJAX()) {
-            return $this->respond([
-                'status' => 'success',
-                'message' => 'Active semester changed',
-                'activeSemester' => $semester,
-                'formattedSemester' => $this->semesterModel->formatSemester($semester),
-                'redirectUrl' => $redirectUrl
-            ]);
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'status' => 'success',
+                    'message' => 'Semester aktif berhasil diubah',
+                    'activeSemester' => $semester,
+                    'formattedSemester' => $this->semesterModel->formatSemester($semester),
+                    'redirectUrl' => $redirectUrl
+                ]);
+            }
+
+            return redirect()->to($redirectUrl)->with('success', 'Semester aktif berhasil diubah');
+        } catch (\Exception $e) {
+            log_message('error', 'Error changing semester: ' . $e->getMessage());
+
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Gagal mengubah semester']);
+            }
+            return redirect()->back()->with('error', 'Gagal mengubah semester');
         }
-
-        return redirect()->to($redirectUrl)->with('success', 'Semester aktif berhasil diubah');
     }
 
     /**
@@ -128,5 +142,194 @@ class SemesterController extends BaseController
         }
 
         return $semester;
+    }
+
+    public function create()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        return view('semesters/create', [
+            'pageTitle' => 'Tambah Semester | SKP Dosen',
+            'validation' => \Config\Services::validation()
+        ]);
+    }
+
+    public function store()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        $rules = [
+            'year' => 'required|integer|min_length[4]|max_length[4]',
+            'term' => 'required|in_list[1,2]'
+        ];
+
+        $messages = [
+            'year' => [
+                'required' => 'Tahun harus diisi',
+                'integer' => 'Tahun harus berupa angka',
+                'min_length' => 'Tahun harus 4 digit',
+                'max_length' => 'Tahun harus 4 digit'
+            ],
+            'term' => [
+                'required' => 'Semester harus dipilih',
+                'in_list' => 'Semester harus Ganjil atau Genap'
+            ]
+        ];
+
+        if (!$this->validate($rules, $messages)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', \Config\Services::validation()->getErrors());
+        }
+
+        $postData = $this->request->getPost();
+
+        if ($this->semesterModel->semesterExists($postData['year'], $postData['term'])) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Semester ini sudah ada dalam database');
+        }
+
+        $data = [
+            'year' => (int)$postData['year'],
+            'term' => $postData['term']
+        ];
+
+        try {
+            $this->semesterModel->insert($data);
+            return redirect()->to('semesters')
+                ->with('success', 'Semester berhasil ditambahkan');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal menambahkan semester: ' . $e->getMessage());
+        }
+    }
+
+    public function edit($id)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        $semester = $this->semesterModel->find($id);
+        if (!$semester) {
+            return redirect()->to('semesters')->with('error', 'Semester tidak ditemukan');
+        }
+
+        return view('semesters/edit', [
+            'pageTitle' => 'Edit Semester | SKP Dosen',
+            'semester' => $semester,
+            'validation' => \Config\Services::validation()
+        ]);
+    }
+
+    public function update($id)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        $semester = $this->semesterModel->find($id);
+        if (!$semester) {
+            return redirect()->to('semesters')->with('error', 'Semester tidak ditemukan');
+        }
+
+        $rules = [
+            'year' => 'required|integer|min_length[4]|max_length[4]',
+            'term' => 'required|in_list[1,2]'
+        ];
+
+        $messages = [
+            'year' => [
+                'required' => 'Tahun harus diisi',
+                'integer' => 'Tahun harus berupa angka',
+                'min_length' => 'Tahun harus 4 digit',
+                'max_length' => 'Tahun harus 4 digit'
+            ],
+            'term' => [
+                'required' => 'Semester harus dipilih',
+                'in_list' => 'Semester harus Ganjil atau Genap'
+            ]
+        ];
+
+        if (!$this->validate($rules, $messages)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', \Config\Services::validation()->getErrors());
+        }
+
+        $postData = $this->request->getPost();
+
+        if ($this->semesterModel->semesterExists($postData['year'], $postData['term'], $id)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Semester ini sudah ada dalam database');
+        }
+
+        $data = [
+            'year' => (int)$postData['year'],
+            'term' => $postData['term']
+        ];
+
+        try {
+            $this->semesterModel->update($id, $data);
+            return redirect()->to('semesters')
+                ->with('success', 'Semester berhasil diperbarui');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal memperbarui semester: ' . $e->getMessage());
+        }
+    }
+
+    public function delete($id)
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        $semester = $this->semesterModel->find($id);
+        if (!$semester) {
+            return redirect()->to('semesters')->with('error', 'Semester tidak ditemukan');
+        }
+
+        if ($this->semesterModel->isActiveSemester($id)) {
+            return redirect()->to('semesters')
+                ->with('error', 'Tidak dapat menghapus semester yang sedang aktif');
+        }
+
+        try {
+            $this->semesterModel->delete($id);
+            return redirect()->to('semesters')
+                ->with('success', 'Semester berhasil dihapus');
+        } catch (\Exception $e) {
+            return redirect()->to('semesters')
+                ->with('error', 'Gagal menghapus semester: ' . $e->getMessage());
+        }
+    }
+
+    public function setActive($id)
+    {
+        // Redirect to the change method for consistency
+        return $this->change();
+    }
+
+    public function getCurrentDefault()
+    {
+        $currentYear = date('Y');
+        $currentMonth = date('n');
+
+        $defaultTerm = ($currentMonth >= 8) ? '1' : '2';
+        $defaultYear = ($currentMonth >= 8) ? $currentYear : $currentYear - 1;
+
+        return $this->response->setJSON([
+            'year' => $defaultYear,
+            'term' => $defaultTerm
+        ]);
     }
 }

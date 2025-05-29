@@ -252,9 +252,6 @@ class LecturerController extends BaseController
         }
     }
 
-    /**
-     * Export data dosen ke Excel
-     */
     public function exportExcel()
     {
         if (!session()->get('isLoggedIn')) {
@@ -262,32 +259,23 @@ class LecturerController extends BaseController
         }
 
         try {
-            // Ambil parameter pencarian dari request
             $search = $this->request->getGet('search');
             $sortBy = $this->request->getGet('sort_by') ?? 'name';
             $sortOrder = $this->request->getGet('sort_order') ?? 'asc';
 
-            // For export, we want to sort by position hierarchy regardless of user's current sort
-            // But still respect search filter
             $result = $this->lecturerModel->getLecturers($search, 10000, 0, 'name', 'asc');
             $lecturers = $result['lecturers'];
             $total = $result['total'];
 
-            // Don't format study program here - let ExcelExportService handle it
-            // because we need the raw values for proper sorting and status determination
-
-            // Buat service export Excel
             $excelService = new ExcelExportService();
             $writer = $excelService->exportLecturers($lecturers, $search, $total);
 
-            // Set nama file
             $filename = 'Data_Dosen_' . date('Y-m-d_H-i-s');
             if ($search) {
                 $filename .= '_Pencarian_' . preg_replace('/[^a-zA-Z0-9]/', '_', $search);
             }
             $filename .= '.xlsx';
 
-            // Set header untuk download
             header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             header('Content-Disposition: attachment;filename="' . $filename . '"');
             header('Cache-Control: max-age=0');
@@ -297,7 +285,6 @@ class LecturerController extends BaseController
             header('Cache-Control: cache, must-revalidate');
             header('Pragma: public');
 
-            // Output file
             $writer->save('php://output');
             exit;
         } catch (\Exception $e) {
@@ -307,9 +294,6 @@ class LecturerController extends BaseController
         }
     }
 
-    /**
-     * Export data dosen ke PDF
-     */
     public function exportPdf()
     {
         if (!session()->get('isLoggedIn')) {
@@ -317,34 +301,28 @@ class LecturerController extends BaseController
         }
 
         try {
-            // Ambil parameter pencarian dari request
             $search = $this->request->getGet('search');
             $sortBy = $this->request->getGet('sort_by') ?? 'name';
             $sortOrder = $this->request->getGet('sort_order') ?? 'asc';
 
-            // Ambil semua data (tanpa limit untuk export)
             $result = $this->lecturerModel->getLecturers($search, 10000, 0, 'name', 'asc');
             $lecturers = $result['lecturers'];
             $total = $result['total'];
 
-            // Buat service export PDF
             $pdfService = new PdfExportService();
             $dompdf = $pdfService->exportLecturers($lecturers, $search, $total);
 
-            // Set nama file
             $filename = 'Data_Dosen_' . date('Y-m-d_H-i-s');
             if ($search) {
                 $filename .= '_Pencarian_' . preg_replace('/[^a-zA-Z0-9]/', '_', $search);
             }
             $filename .= '.pdf';
 
-            // Set header untuk download
             header('Content-Type: application/pdf');
             header('Content-Disposition: attachment; filename="' . $filename . '"');
             header('Cache-Control: private, max-age=0, must-revalidate');
             header('Pragma: public');
 
-            // Output PDF
             echo $pdfService->outputPdf();
             exit;
         } catch (\Exception $e) {

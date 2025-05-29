@@ -14,6 +14,10 @@ helper('navigation');
     <script>
         const baseUrl = '<?= base_url() ?>';
     </script>
+
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+
     <link rel="stylesheet" href="<?= base_url('assets/css/semester_selector.css') ?>">
     <?= $this->section('styles') ?>
     <link rel="stylesheet" href="<?= base_url('assets/css/alerts.css') ?>">
@@ -48,10 +52,12 @@ helper('navigation');
     <!-- Logout Confirmation Modal -->
     <?= view('layout/partials/logout_modal') ?>
 
+    <!-- SweetAlert2 JS - Load before custom scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <!-- Custom JS -->
     <script src="<?= base_url('assets/js/sidebar.js') ?>"></script>
     <script src="<?= base_url('assets/js/admin_layout.js') ?>"></script>
-    <script src="<?= base_url('assets/js/semester_selector.js') ?>"></script>
 
     <?= $this->renderSection('scripts') ?>
 </body>

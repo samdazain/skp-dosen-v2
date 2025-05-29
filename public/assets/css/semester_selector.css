@@ -1,39 +1,153 @@
+/* Semester Selector Dropdown Styling */
 .semester-selector .dropdown-toggle {
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    min-width: 200px;
-    justify-content: space-between;
+  border: 1px solid #007bff;
+  transition: all 0.3s ease;
+  min-width: 200px;
+  text-align: left;
 }
 
-.semester-selector .dropdown-toggle::after {
-    margin-left: 10px;
+.semester-selector .dropdown-toggle:hover {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.semester-selector .dropdown-toggle:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
 .semester-selector .dropdown-menu {
-    min-width: 220px;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  max-height: 400px;
+  overflow-y: auto;
 }
 
-.semester-selector .dropdown-item.active {
-    background-color: #007bff;
-    color: white;
-}
-
-.semester-selector .dropdown-item.active .fa-check {
-    color: white;
+.semester-selector .dropdown-header {
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
 }
 
 .semester-selector .dropdown-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 1rem;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s ease;
+  border: none;
 }
 
 .semester-selector .dropdown-item:hover {
-    background-color: #f8f9fa;
+  background-color: #f8f9fa;
+  transform: translateX(2px);
+}
+
+.semester-selector .dropdown-item.active {
+  background-color: #007bff !important;
+  color: white !important;
 }
 
 .semester-selector .dropdown-item.active:hover {
-    background-color: #0069d9;
+  background-color: #0056b3 !important;
+}
+
+.semester-selector .semester-option {
+  cursor: pointer;
+}
+
+.semester-selector .semester-option .badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Custom SweetAlert2 styling */
+.swal2-popup-custom {
+  border-radius: 1rem !important;
+}
+
+.swal2-popup-custom .swal2-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.swal2-popup-custom .swal2-content {
+  color: #6c757d;
+}
+
+.swal2-popup-custom .alert {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid #bee5eb;
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+/* Loading animation enhancement */
+.swal2-loading {
+  border-radius: 1rem !important;
+}
+
+/* Toast positioning and styling */
+.swal2-toast {
+  border-radius: 0.5rem !important;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .semester-selector .dropdown-toggle {
+    min-width: 150px;
+    font-size: 0.875rem;
+  }
+
+  .semester-selector .dropdown-menu {
+    min-width: 250px;
+  }
+}
+
+/* Animation for dropdown items */
+.semester-selector .dropdown-item {
+  opacity: 0;
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+.semester-selector .dropdown-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.semester-selector .dropdown-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.semester-selector .dropdown-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.semester-selector .dropdown-item:nth-child(4) {
+  animation-delay: 0.4s;
+}
+.semester-selector .dropdown-item:nth-child(5) {
+  animation-delay: 0.5s;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Icon styling improvements */
+.semester-selector .fas,
+.semester-selector .far {
+  width: 1.25rem;
+  text-align: center;
+}
+
+.semester-selector .dropdown-item small {
+  font-size: 0.75rem;
+  line-height: 1.2;
 }

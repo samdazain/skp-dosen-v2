@@ -1,5 +1,4 @@
 <?php
-// filepath: d:\KULIAH\SEMESTER6\PKL\Project\skp-dosen\app\Views\components\content_header.php
 
 /**
  * Content Header with Breadcrumbs and Semester Selector
@@ -43,7 +42,8 @@ $showSemesterSelector = $show_semester_selector ?? true;
                         <div class="mr-3">
                             <?= view('components/semester_selector', [
                                 'semesters' => $semesters,
-                                'activeSemester' => $activeSemester
+                                'activeSemester' => $activeSemester,
+                                'semesterModel' => $semesterModel
                             ]) ?>
                         </div>
                     <?php endif; ?>

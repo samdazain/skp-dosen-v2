@@ -32,11 +32,66 @@ class SemesterModel extends Model
      */
     public function getCurrentSemester()
     {
-        // For a real app, you might have an 'is_active' field
-        // Here we'll just return the most recent semester
-        return $this->orderBy('year', 'DESC')
-            ->orderBy('term', 'DESC')
+        $activeSemesterId = session()->get('activeSemesterId');
+
+        if ($activeSemesterId) {
+            $semester = $this->find($activeSemesterId);
+            if ($semester) {
+                return $semester;
+            }
+        }
+
+        return $this->getDefaultSemester();
+    }
+
+    /**
+     * Alias for getCurrentSemester()
+     */
+    public function getActiveSemester()
+    {
+        return $this->getCurrentSemester();
+    }
+
+    /**
+     * Get the default semester based on the current date
+     * 
+     * @return array|null
+     */
+    public function getDefaultSemester()
+    {
+        $currentYear = date('Y');
+        $currentMonth = date('n');
+
+        // Determine default semester based on current date
+        if ($currentMonth >= 8) {
+            // August to December = Ganjil of current year
+            $defaultTerm = '1';
+            $defaultYear = $currentYear;
+        } else {
+            // January to July
+            if ($currentMonth >= 2) {
+                // February to July = Genap of previous year
+                $defaultTerm = '2';
+                $defaultYear = $currentYear - 1;
+            } else {
+                // January = Ganjil of previous year
+                $defaultTerm = '1';
+                $defaultYear = $currentYear - 1;
+            }
+        }
+
+        $semester = $this->where('year', $defaultYear)
+            ->where('term', $defaultTerm)
             ->first();
+
+        if (!$semester) {
+            // If specific semester not found, get the most recent one
+            $semester = $this->orderBy('year', 'DESC')
+                ->orderBy('term', 'DESC')
+                ->first();
+        }
+
+        return $semester;
     }
 
     /**
@@ -65,126 +120,97 @@ class SemesterModel extends Model
      */
     public function getSemesterById($id)
     {
-        // Get the result
         $result = $this->find($id);
 
-        // Ensure we return array|null as specified in docblock
+        // Handle both array and object results
         if (is_object($result)) {
-            if (method_exists($result, 'first')) {
-                $result = $result->first();
-            }
-
-            if ($result !== null) {
-                if (method_exists($result, 'toArray')) {
-                    return $result->toArray();
-                } else {
-                    return (array)$result;
-                }
-            }
+            return method_exists($result, 'toArray') ? $result->toArray() : (array)$result;
         }
 
-        return $result;
+        return is_array($result) ? $result : null;
     }
+
     /**
-     * Provide dummy data for development
+     * Check if a semester exists
+     * 
+     * @param int $year
+     * @param int $term
+     * @param int|null $excludeId
+     * @return bool
+     */
+    public function semesterExists($year, $term, $excludeId = null)
+    {
+        $builder = $this->where('year', $year)->where('term', $term);
+
+        if ($excludeId) {
+            $builder->where('id !=', $excludeId);
+        }
+
+        return $builder->countAllResults() > 0;
+    }
+
+    /**
+     * Check if a semester is the active semester
+     * 
+     * @param int $id
+     * @return bool
+     */
+    public function isActiveSemester($id)
+    {
+        return session()->get('activeSemesterId') == $id;
+    }
+
+    /**
+     * Get term options
      * 
      * @return array
      */
-    public function getDummySemesters()
+    public function getTermOptions()
     {
-        $currentYear = date('Y');
-
         return [
-            [
-                'id' => 1,
-                'year' => $currentYear - 2,
-                'term' => '1',
-                'created_at' => date('Y-m-d H:i:s', strtotime('-2 years')),
-                'updated_at' => date('Y-m-d H:i:s', strtotime('-2 years'))
-            ],
-            [
-                'id' => 2,
-                'year' => $currentYear - 2,
-                'term' => '2',
-                'created_at' => date('Y-m-d H:i:s', strtotime('-1.5 years')),
-                'updated_at' => date('Y-m-d H:i:s', strtotime('-1.5 years'))
-            ],
-            [
-                'id' => 3,
-                'year' => $currentYear - 1,
-                'term' => '1',
-                'created_at' => date('Y-m-d H:i:s', strtotime('-1 year')),
-                'updated_at' => date('Y-m-d H:i:s', strtotime('-1 year'))
-            ],
-            [
-                'id' => 4,
-                'year' => $currentYear - 1,
-                'term' => '2',
-                'created_at' => date('Y-m-d H:i:s', strtotime('-6 months')),
-                'updated_at' => date('Y-m-d H:i:s', strtotime('-6 months'))
-            ],
-            [
-                'id' => 5,
-                'year' => $currentYear,
-                'term' => '1',
-                'created_at' => date('Y-m-d H:i:s'),
-                'updated_at' => date('Y-m-d H:i:s')
-            ]
+            '1' => 'Ganjil',
+            '2' => 'Genap'
         ];
     }
 
     /**
-     * Override findAll to use dummy data during development
+     * Get a range of years for selection
+     * 
+     * @param int|null $startYear
+     * @param int|null $endYear
+     * @return array
      */
-    public function findAll(int|null $limit = null, int $offset = 0)
+    public function getYearRange($startYear = null, $endYear = null)
     {
-        if (ENVIRONMENT === 'production') {
-            return parent::findAll($limit, $offset);
+        if (!$startYear) {
+            $startYear = date('Y') - 5;
+        }
+        if (!$endYear) {
+            $endYear = date('Y') + 2;
         }
 
-        $data = $this->getDummySemesters();
-
-        if ($limit > 0) {
-            $data = array_slice($data, $offset, $limit);
-        } elseif ($offset > 0) {
-            $data = array_slice($data, $offset);
+        $years = [];
+        for ($year = $endYear; $year >= $startYear; $year--) {
+            $years[$year] = $year;
         }
 
-        return $data;
+        return $years;
     }
 
     /**
-     * Override first to use dummy data during development
+     * Get semester statistics
      */
-    public function first()
+    public function getSemesterStats()
     {
-        if (ENVIRONMENT === 'production') {
-            return parent::first();
-        }
+        $total = $this->countAll();
+        $currentYear = date('Y');
 
-        $data = $this->getDummySemesters();
-        return reset($data); // Return first item
-    }
+        $currentYearCount = $this->where('year', $currentYear)->countAllResults();
 
-    /**
-     * Override find to use dummy data during development
-     */
-    public function find($id = null)
-    {
-        if (ENVIRONMENT === 'production') {
-            return parent::find($id);
-        }
-
-        if ($id === null) {
-            return $this->findAll();
-        }
-
-        foreach ($this->getDummySemesters() as $semester) {
-            if ($semester['id'] == $id) {
-                return $semester;
-            }
-        }
-
-        return null;
+        return [
+            'total' => $total,
+            'current_year' => $currentYearCount,
+            'latest' => $this->orderBy('year', 'DESC')->orderBy('term', 'DESC')->first()
+        ];
     }
 }

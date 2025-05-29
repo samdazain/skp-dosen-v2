@@ -167,27 +167,6 @@
                 'button_text' => 'Buka Penilaian'
             ]) ?>
         </div>
-
-        <!-- Activity Log -->
-        <?= view('dashboard/partials/activity_log', [
-            'activities' => [
-                [
-                    'date' => date('d M Y H:i'),
-                    'user' => 'Admin',
-                    'activity' => 'Login ke sistem'
-                ],
-                [
-                    'date' => date('d M Y H:i', strtotime('-1 day')),
-                    'user' => 'Admin',
-                    'activity' => 'Upload data integritas dosen'
-                ],
-                [
-                    'date' => date('d M Y H:i', strtotime('-2 day')),
-                    'user' => 'Admin',
-                    'activity' => 'Memperbarui data dosen'
-                ]
-            ]
-        ]) ?>
     </div>
 </section>
 <?= $this->endSection() ?>
