@@ -86,8 +86,10 @@
                             <td class="text-center">
                                 <?php
                                 $score = (int)$data['score'];
-                                if ($score >= 80) {
-                                    echo '<span class="badge badge-success">Baik</span>';
+                                if ($score >= 88) {
+                                    echo '<span class="badge badge-success">Sangat Baik</span>';
+                                } elseif ($score >= 75) {
+                                    echo '<span class="badge badge-warning">Baik</span>';
                                 } elseif ($score >= 60) {
                                     echo '<span class="badge badge-warning">Cukup</span>';
                                 } else {

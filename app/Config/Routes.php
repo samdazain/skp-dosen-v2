@@ -68,18 +68,23 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('export-pdf', 'LecturerController::exportPdf');
     });
 
-    // Integrity
+    // Integrity (updated routes)
     $routes->group('integrity', static function ($routes) {
         $routes->get('', 'IntegrityController::index');
+        $routes->get('recalculate', 'IntegrityController::recalculateScores'); // Manual recalculation for admin
+        $routes->get('force-recalculate-all', 'IntegrityController::forceRecalculateAll'); // Force recalculation
+        $routes->get('calculation-status', 'IntegrityController::getCalculationStatus'); // AJAX status check
         $routes->get('export-excel', 'IntegrityController::exportExcel');
         $routes->get('export-pdf', 'IntegrityController::exportPdf');
     });
 
-    // Discipline (corrected typo from "DiscplineController")
+    // Discipline (updated routes)
     $routes->group('discipline', static function ($routes) {
-        $routes->get('', 'DiscplineController::index');
-        $routes->get('export-excel', 'DiscplineController::exportExcel');
-        $routes->get('export-pdf', 'DiscplineController::exportPdf');
+        $routes->get('', 'DisciplineController::index');
+        $routes->get('recalculate', 'DisciplineController::recalculateScores'); // Manual recalculation for admin
+        $routes->get('calculation-status', 'DisciplineController::getCalculationStatus'); // AJAX status check
+        $routes->get('export-excel', 'DisciplineController::exportExcel');
+        $routes->get('export-pdf', 'DisciplineController::exportPdf');
     });
 
     // Commitment

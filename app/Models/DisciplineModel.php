@@ -4,15 +4,16 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class IntegrityModel extends Model
+class DisciplineModel extends Model
 {
-    protected $table = 'integrity';
+    protected $table = 'discipline';
     protected $primaryKey = 'id';
     protected $allowedFields = [
         'lecturer_id',
         'semester_id',
-        'teaching_attendance',
-        'courses_taught',
+        'daily_absence',
+        'exercise_morning_absence',
+        'ceremony_absence',
         'score',
         'updated_by',
         'updated_at'
@@ -60,10 +61,10 @@ class IntegrityModel extends Model
     }
 
     /**
-     * Get integrity data with lecturer information for current semester
+     * Get discipline data with lecturer information for current semester
      * Auto-populate missing lecturers and include position ordering
      */
-    public function getIntegrityDataWithLecturers($semesterId = null)
+    public function getDisciplineDataWithLecturers($semesterId = null)
     {
         if (!$semesterId) {
             $semesterModel = new SemesterModel();
@@ -75,22 +76,22 @@ class IntegrityModel extends Model
             return [];
         }
 
-        // Auto-populate integrity table with all lecturers for this semester
-        $this->autoPopulateIntegrityData($semesterId);
+        // Auto-populate discipline table with all lecturers for this semester
+        $this->autoPopulateDisciplineData($semesterId);
 
         // Auto-recalculate scores that are 0
         $this->recalculateZeroScores($semesterId);
 
         // Get the data with lecturer information, ordered by position hierarchy
         $data = $this->select('
-                integrity.*,
+                discipline.*,
                 lecturers.nip,
                 lecturers.name as lecturer_name,
                 lecturers.position,
                 lecturers.study_program
             ')
-            ->join('lecturers', 'lecturers.id = integrity.lecturer_id')
-            ->where('integrity.semester_id', $semesterId)
+            ->join('lecturers', 'lecturers.id = discipline.lecturer_id')
+            ->where('discipline.semester_id', $semesterId)
             ->findAll();
 
         // Sort by position hierarchy, then by name
@@ -113,9 +114,10 @@ class IntegrityModel extends Model
     }
 
     /**
-     * Auto-populate integrity table with all lecturers for given semester
+     * Auto-populate discipline table with all lecturers for given semester
+     * Enhanced with better performance
      */
-    public function autoPopulateIntegrityData($semesterId)
+    public function autoPopulateDisciplineData($semesterId)
     {
         // Get all lecturers
         $lecturers = $this->lecturerModel->findAll();
@@ -132,13 +134,14 @@ class IntegrityModel extends Model
         $addedCount = 0;
 
         foreach ($lecturers as $lecturer) {
-            // Check if integrity record exists for this lecturer and semester
+            // Check if discipline record exists for this lecturer and semester
             if (!in_array($lecturer['id'], $existingRecords)) {
                 $newRecords[] = [
                     'lecturer_id' => $lecturer['id'],
                     'semester_id' => $semesterId,
-                    'teaching_attendance' => 0, // Default: no attendance recorded
-                    'courses_taught' => 0, // Default: no courses recorded
+                    'daily_absence' => 0, // Default: no absences
+                    'exercise_morning_absence' => 0, // Default: no absences
+                    'ceremony_absence' => 0, // Default: no absences
                     'score' => 0, // Will be calculated when real data is entered
                     'updated_by' => null,
                     'updated_at' => date('Y-m-d H:i:s')
@@ -151,9 +154,9 @@ class IntegrityModel extends Model
         if (!empty($newRecords)) {
             try {
                 $this->insertBatch($newRecords);
-                log_message('info', "Auto-populated {$addedCount} integrity records for semester {$semesterId}");
+                log_message('info', "Auto-populated {$addedCount} discipline records for semester {$semesterId}");
             } catch (\Exception $e) {
-                log_message('error', 'Error auto-populating integrity data: ' . $e->getMessage());
+                log_message('error', 'Error auto-populating discipline data: ' . $e->getMessage());
                 throw $e;
             }
         }
@@ -162,16 +165,17 @@ class IntegrityModel extends Model
     }
 
     /**
-     * Calculate integrity score based on teaching attendance and courses taught
+     * Calculate discipline score based on absence counts
      */
-    public function calculateIntegrityScore($teachingAttendance, $coursesTaught)
+    public function calculateDisciplineScore($dailyAbsence, $exerciseAbsence, $ceremonyAbsence)
     {
-        // Get scores from score settings
-        $attendanceScore = $this->scoreModel->calculateScore('integrity', 'teaching_attendance', (int)$teachingAttendance);
-        $coursesScore = $this->scoreModel->calculateScore('integrity', 'courses_taught', (int)$coursesTaught);
+        // Get scores from score settings using correct subcategory names
+        $dailyScore = $this->scoreModel->calculateScore('discipline', 'daily_attendance', (int)$dailyAbsence);
+        $exerciseScore = $this->scoreModel->calculateScore('discipline', 'morning_exercise', (int)$exerciseAbsence);
+        $ceremonyScore = $this->scoreModel->calculateScore('discipline', 'ceremony_attendance', (int)$ceremonyAbsence);
 
-        // Calculate weighted average: attendance (60%), courses (40%)
-        $totalScore = ($attendanceScore * 0.6) + ($coursesScore * 0.4);
+        // Calculate weighted average: daily (60%), exercise (20%), ceremony (20%)
+        $totalScore = ($dailyScore * 0.6) + ($exerciseScore * 0.2) + ($ceremonyScore * 0.2);
 
         return (int)round($totalScore);
     }
@@ -200,9 +204,10 @@ class IntegrityModel extends Model
 
         foreach ($recordsToUpdate as $record) {
             // Calculate new score
-            $newScore = $this->calculateIntegrityScore(
-                $record['teaching_attendance'],
-                $record['courses_taught']
+            $newScore = $this->calculateDisciplineScore(
+                $record['daily_absence'],
+                $record['exercise_morning_absence'],
+                $record['ceremony_absence']
             );
 
             // Update if score would be different from 0
@@ -248,9 +253,10 @@ class IntegrityModel extends Model
         try {
             foreach ($allRecords as $record) {
                 // Calculate new score
-                $newScore = $this->calculateIntegrityScore(
-                    $record['teaching_attendance'],
-                    $record['courses_taught']
+                $newScore = $this->calculateDisciplineScore(
+                    $record['daily_absence'],
+                    $record['exercise_morning_absence'],
+                    $record['ceremony_absence']
                 );
 
                 // Only update if score has changed
@@ -278,21 +284,23 @@ class IntegrityModel extends Model
     }
 
     /**
-     * Update integrity data and recalculate score
+     * Update discipline data and recalculate score
      */
-    public function updateLecturerIntegrity($lecturerId, $semesterId, $data, $updatedBy = null)
+    public function updateLecturerDiscipline($lecturerId, $semesterId, $data, $updatedBy = null)
     {
         // Calculate score
-        $score = $this->calculateIntegrityScore(
-            $data['teaching_attendance'],
-            $data['courses_taught']
+        $score = $this->calculateDisciplineScore(
+            $data['daily_absence'],
+            $data['exercise_morning_absence'],
+            $data['ceremony_absence']
         );
 
-        $integrityData = [
+        $disciplineData = [
             'lecturer_id' => $lecturerId,
             'semester_id' => $semesterId,
-            'teaching_attendance' => (int)$data['teaching_attendance'],
-            'courses_taught' => (int)$data['courses_taught'],
+            'daily_absence' => (int)$data['daily_absence'],
+            'exercise_morning_absence' => (int)$data['exercise_morning_absence'],
+            'ceremony_absence' => (int)$data['ceremony_absence'],
             'score' => $score,
             'updated_by' => $updatedBy,
             'updated_at' => date('Y-m-d H:i:s')
@@ -304,17 +312,17 @@ class IntegrityModel extends Model
             ->first();
 
         if ($existing) {
-            return $this->update($existing['id'], $integrityData);
+            return $this->update($existing['id'], $disciplineData);
         } else {
             // Create if somehow missing
-            return $this->insert($integrityData);
+            return $this->insert($disciplineData);
         }
     }
 
     /**
-     * Get integrity statistics for current semester
+     * Get discipline statistics for current semester
      */
-    public function getIntegrityStatistics($semesterId = null)
+    public function getDisciplineStatistics($semesterId = null)
     {
         if (!$semesterId) {
             $semesterModel = new SemesterModel();
@@ -324,11 +332,13 @@ class IntegrityModel extends Model
 
         if (!$semesterId) {
             return [
-                'average_attendance_score' => 0,
-                'average_courses_score' => 0,
+                'average_daily_score' => 0,
+                'average_exercise_score' => 0,
+                'average_ceremony_score' => 0,
                 'total_lecturers' => 0,
-                'attendance_distribution' => $this->getEmptyDistribution(),
-                'courses_distribution' => $this->getEmptyDistribution(),
+                'daily' => $this->getEmptyDistribution(),
+                'exercise' => $this->getEmptyDistribution(),
+                'ceremony' => $this->getEmptyDistribution(),
                 'score_distribution' => [
                     'excellent' => 0,
                     'good' => 0,
@@ -342,11 +352,13 @@ class IntegrityModel extends Model
 
         if (empty($data)) {
             return [
-                'average_attendance_score' => 0,
-                'average_courses_score' => 0,
+                'average_daily_score' => 0,
+                'average_exercise_score' => 0,
+                'average_ceremony_score' => 0,
                 'total_lecturers' => 0,
-                'attendance_distribution' => $this->getEmptyDistribution(),
-                'courses_distribution' => $this->getEmptyDistribution(),
+                'daily' => $this->getEmptyDistribution(),
+                'exercise' => $this->getEmptyDistribution(),
+                'ceremony' => $this->getEmptyDistribution(),
                 'score_distribution' => [
                     'excellent' => 0,
                     'good' => 0,
@@ -357,39 +369,44 @@ class IntegrityModel extends Model
         }
 
         $totalLecturers = count($data);
-        $totalAttendanceScore = 0;
-        $totalCoursesScore = 0;
+        $totalDailyScore = 0;
+        $totalExerciseScore = 0;
+        $totalCeremonyScore = 0;
 
-        // Initialize counters for distribution
-        $attendanceDistribution = $this->getEmptyDistribution();
-        $coursesDistribution = $this->getEmptyDistribution();
+        // Initialize counters for absence distribution
+        $dailyDistribution = $this->getEmptyDistribution();
+        $exerciseDistribution = $this->getEmptyDistribution();
+        $ceremonyDistribution = $this->getEmptyDistribution();
 
         $scoreDistribution = [
-            'excellent' => 0, // 85-100
-            'good' => 0,      // 75-84
-            'fair' => 0,      // 60-74
-            'poor' => 0       // <60
+            'excellent' => 0, // 90-100
+            'good' => 0,      // 80-89
+            'fair' => 0,      // 70-79
+            'poor' => 0       // <70
         ];
 
         foreach ($data as $record) {
-            // Calculate individual component scores
-            $attendanceScore = $this->scoreModel->calculateScore('integrity', 'teaching_attendance', $record['teaching_attendance']);
-            $coursesScore = $this->scoreModel->calculateScore('integrity', 'courses_taught', $record['courses_taught']);
+            // Calculate individual component scores using correct subcategory names
+            $dailyScore = $this->scoreModel->calculateScore('discipline', 'daily_attendance', $record['daily_absence']);
+            $exerciseScore = $this->scoreModel->calculateScore('discipline', 'morning_exercise', $record['exercise_morning_absence']);
+            $ceremonyScore = $this->scoreModel->calculateScore('discipline', 'ceremony_attendance', $record['ceremony_absence']);
 
-            $totalAttendanceScore += $attendanceScore;
-            $totalCoursesScore += $coursesScore;
+            $totalDailyScore += $dailyScore;
+            $totalExerciseScore += $exerciseScore;
+            $totalCeremonyScore += $ceremonyScore;
 
-            // Count distributions
-            $this->countValueDistribution($record['teaching_attendance'], $attendanceDistribution);
-            $this->countValueDistribution($record['courses_taught'], $coursesDistribution);
+            // Count absence distributions
+            $this->countAbsenceDistribution($record['daily_absence'], $dailyDistribution);
+            $this->countAbsenceDistribution($record['exercise_morning_absence'], $exerciseDistribution);
+            $this->countAbsenceDistribution($record['ceremony_absence'], $ceremonyDistribution);
 
             // Distribute overall scores
             $overallScore = (int)$record['score'];
-            if ($overallScore >= 85) {
+            if ($overallScore >= 90) {
                 $scoreDistribution['excellent']++;
-            } elseif ($overallScore >= 75) {
+            } elseif ($overallScore >= 80) {
                 $scoreDistribution['good']++;
-            } elseif ($overallScore >= 60) {
+            } elseif ($overallScore >= 70) {
                 $scoreDistribution['fair']++;
             } else {
                 $scoreDistribution['poor']++;
@@ -397,52 +414,55 @@ class IntegrityModel extends Model
         }
 
         // Calculate percentages
-        $attendanceDistribution = $this->calculatePercentages($attendanceDistribution, $totalLecturers);
-        $coursesDistribution = $this->calculatePercentages($coursesDistribution, $totalLecturers);
+        $dailyDistribution = $this->calculatePercentages($dailyDistribution, $totalLecturers);
+        $exerciseDistribution = $this->calculatePercentages($exerciseDistribution, $totalLecturers);
+        $ceremonyDistribution = $this->calculatePercentages($ceremonyDistribution, $totalLecturers);
 
         return [
-            'average_attendance_score' => $totalLecturers > 0 ? round($totalAttendanceScore / $totalLecturers, 1) : 0,
-            'average_courses_score' => $totalLecturers > 0 ? round($totalCoursesScore / $totalLecturers, 1) : 0,
+            'average_daily_score' => $totalLecturers > 0 ? round($totalDailyScore / $totalLecturers, 1) : 0,
+            'average_exercise_score' => $totalLecturers > 0 ? round($totalExerciseScore / $totalLecturers, 1) : 0,
+            'average_ceremony_score' => $totalLecturers > 0 ? round($totalCeremonyScore / $totalLecturers, 1) : 0,
             'total_lecturers' => $totalLecturers,
-            'attendance_distribution' => $attendanceDistribution,
-            'courses_distribution' => $coursesDistribution,
+            'daily' => $dailyDistribution,
+            'exercise' => $exerciseDistribution,
+            'ceremony' => $ceremonyDistribution,
             'score_distribution' => $scoreDistribution
         ];
     }
 
     /**
-     * Get empty distribution array for integrity values
+     * Get empty distribution array
      */
     private function getEmptyDistribution()
     {
         return [
-            'count_0' => 0,
-            'count_1_5' => 0,
-            'count_6_10' => 0,
-            'count_above_10' => 0,
+            'count_no_alpha' => 0,
+            'count_1_2_alpha' => 0,
+            'count_3_4_alpha' => 0,
+            'count_above_5_alpha' => 0,
             'total' => 0,
-            'percentage_0' => 0,
-            'percentage_1_5' => 0,
-            'percentage_6_10' => 0,
-            'percentage_above_10' => 0
+            'percentage_no_alpha' => 0,
+            'percentage_1_2_alpha' => 0,
+            'percentage_3_4_alpha' => 0,
+            'percentage_above_5_alpha' => 0
         ];
     }
 
     /**
-     * Count value distribution for integrity metrics
+     * Count absence distribution
      */
-    private function countValueDistribution($value, &$distribution)
+    private function countAbsenceDistribution($absenceCount, &$distribution)
     {
         $distribution['total']++;
 
-        if ($value == 0) {
-            $distribution['count_0']++;
-        } elseif ($value >= 1 && $value <= 5) {
-            $distribution['count_1_5']++;
-        } elseif ($value >= 6 && $value <= 10) {
-            $distribution['count_6_10']++;
+        if ($absenceCount == 0) {
+            $distribution['count_no_alpha']++;
+        } elseif ($absenceCount >= 1 && $absenceCount <= 2) {
+            $distribution['count_1_2_alpha']++;
+        } elseif ($absenceCount >= 3 && $absenceCount <= 4) {
+            $distribution['count_3_4_alpha']++;
         } else {
-            $distribution['count_above_10']++;
+            $distribution['count_above_5_alpha']++;
         }
     }
 
@@ -452,36 +472,37 @@ class IntegrityModel extends Model
     private function calculatePercentages($distribution, $total)
     {
         if ($total > 0) {
-            $distribution['percentage_0'] = round(($distribution['count_0'] / $total) * 100, 1);
-            $distribution['percentage_1_5'] = round(($distribution['count_1_5'] / $total) * 100, 1);
-            $distribution['percentage_6_10'] = round(($distribution['count_6_10'] / $total) * 100, 1);
-            $distribution['percentage_above_10'] = round(($distribution['count_above_10'] / $total) * 100, 1);
+            $distribution['percentage_no_alpha'] = round(($distribution['count_no_alpha'] / $total) * 100, 1);
+            $distribution['percentage_1_2_alpha'] = round(($distribution['count_1_2_alpha'] / $total) * 100, 1);
+            $distribution['percentage_3_4_alpha'] = round(($distribution['count_3_4_alpha'] / $total) * 100, 1);
+            $distribution['percentage_above_5_alpha'] = round(($distribution['count_above_5_alpha'] / $total) * 100, 1);
         }
 
         return $distribution;
     }
 
     /**
-     * Bulk update integrity data from uploaded file
+     * Bulk update discipline data from uploaded file
      */
-    public function bulkUpdateIntegrity($integrityData, $semesterId, $updatedBy = null)
+    public function bulkUpdateDiscipline($disciplineData, $semesterId, $updatedBy = null)
     {
         $this->db->transStart();
 
         // First, ensure all lecturers are populated
-        $this->autoPopulateIntegrityData($semesterId);
+        $this->autoPopulateDisciplineData($semesterId);
 
-        foreach ($integrityData as $data) {
+        foreach ($disciplineData as $data) {
             // Find lecturer by NIP
             $lecturer = $this->lecturerModel->where('nip', $data['nip'])->first();
 
             if ($lecturer) {
-                $this->updateLecturerIntegrity(
+                $this->updateLecturerDiscipline(
                     $lecturer['id'],
                     $semesterId,
                     [
-                        'teaching_attendance' => $data['teaching_attendance'],
-                        'courses_taught' => $data['courses_taught']
+                        'daily_absence' => $data['daily_absence'],
+                        'exercise_morning_absence' => $data['exercise_morning_absence'],
+                        'ceremony_absence' => $data['ceremony_absence']
                     ],
                     $updatedBy
                 );
@@ -493,9 +514,9 @@ class IntegrityModel extends Model
     }
 
     /**
-     * Get integrity data for specific lecturer and semester
+     * Get discipline data for specific lecturer and semester
      */
-    public function getLecturerIntegrity($lecturerId, $semesterId)
+    public function getLecturerDiscipline($lecturerId, $semesterId)
     {
         return $this->where('lecturer_id', $lecturerId)
             ->where('semester_id', $semesterId)
@@ -503,9 +524,9 @@ class IntegrityModel extends Model
     }
 
     /**
-     * Check if lecturer has integrity data for semester
+     * Check if lecturer has discipline data for semester
      */
-    public function hasIntegrityData($lecturerId, $semesterId)
+    public function hasDisciplineData($lecturerId, $semesterId)
     {
         return $this->where('lecturer_id', $lecturerId)
             ->where('semester_id', $semesterId)

@@ -97,7 +97,7 @@ $stats = $statistics ?? [
             </div>
             <div class="card-body">
                 <div class="progress-group">
-                    <span class="progress-text">Sangat Baik (85-100)</span>
+                    <span class="progress-text">Sangat Baik (88)</span>
                     <span class="float-right">
                         <b><?= $stats['score_distribution']['excellent'] ?></b>/<?= $stats['total_lecturers'] ?> dosen
                     </span>
@@ -109,7 +109,7 @@ $stats = $statistics ?? [
                 </div>
 
                 <div class="progress-group">
-                    <span class="progress-text">Baik (75-84)</span>
+                    <span class="progress-text">Baik (75-87)</span>
                     <span class="float-right">
                         <b><?= $stats['score_distribution']['good'] ?></b>/<?= $stats['total_lecturers'] ?> dosen
                     </span>

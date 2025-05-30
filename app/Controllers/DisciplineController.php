@@ -2,22 +2,22 @@
 
 namespace App\Controllers;
 
-use App\Models\IntegrityModel;
+use App\Models\DisciplineModel;
 use App\Models\SemesterModel;
 
-class IntegrityController extends BaseController
+class DisciplineController extends BaseController
 {
-    protected $integrityModel;
+    protected $disciplineModel;
     protected $semesterModel;
 
     public function __construct()
     {
-        $this->integrityModel = new IntegrityModel();
+        $this->disciplineModel = new DisciplineModel();
         $this->semesterModel = new SemesterModel();
     }
 
     /**
-     * Display list of lecturer integrity data
+     * Display list of lecturer discipline data
      * Automatically recalculates scores on every page load
      */
     public function index()
@@ -37,17 +37,19 @@ class IntegrityController extends BaseController
         $semesterId = $currentSemester ? $currentSemester['id'] : null;
 
         if (!$semesterId) {
-            return view('integrity/index', [
-                'pageTitle' => 'Data Integritas | SKP Dosen',
+            return view('discipline/index', [
+                'pageTitle' => 'Data Disiplin | SKP Dosen',
                 'user' => $userData,
-                'integrityData' => [],
+                'disciplineData' => [],
                 'currentSemester' => null,
                 'statistics' => [
-                    'average_attendance_score' => 0,
-                    'average_courses_score' => 0,
+                    'average_daily_score' => 0,
+                    'average_exercise_score' => 0,
+                    'average_ceremony_score' => 0,
                     'total_lecturers' => 0,
-                    'attendance_distribution' => [],
-                    'courses_distribution' => [],
+                    'daily' => ['count_no_alpha' => 0, 'count_1_2_alpha' => 0, 'count_3_4_alpha' => 0, 'count_above_5_alpha' => 0, 'total' => 0, 'percentage_no_alpha' => 0, 'percentage_1_2_alpha' => 0, 'percentage_3_4_alpha' => 0, 'percentage_above_5_alpha' => 0],
+                    'exercise' => ['count_no_alpha' => 0, 'count_1_2_alpha' => 0, 'count_3_4_alpha' => 0, 'count_above_5_alpha' => 0, 'total' => 0, 'percentage_no_alpha' => 0, 'percentage_1_2_alpha' => 0, 'percentage_3_4_alpha' => 0, 'percentage_above_5_alpha' => 0],
+                    'ceremony' => ['count_no_alpha' => 0, 'count_1_2_alpha' => 0, 'count_3_4_alpha' => 0, 'count_above_5_alpha' => 0, 'total' => 0, 'percentage_no_alpha' => 0, 'percentage_1_2_alpha' => 0, 'percentage_3_4_alpha' => 0, 'percentage_above_5_alpha' => 0],
                     'score_distribution' => [
                         'excellent' => 0,
                         'good' => 0,
@@ -60,27 +62,27 @@ class IntegrityController extends BaseController
         }
 
         try {
-            // Auto-populate integrity data for all lecturers
-            $this->integrityModel->autoPopulateIntegrityData($semesterId);
+            // Auto-populate discipline data for all lecturers
+            $this->disciplineModel->autoPopulateDisciplineData($semesterId);
 
             // Automatically recalculate ALL scores on every page load
-            $updatedCount = $this->integrityModel->recalculateAllScores($semesterId);
+            $updatedCount = $this->disciplineModel->recalculateAllScores($semesterId);
 
             // Log the automatic calculation
             if ($updatedCount > 0) {
-                log_message('info', "Integrity auto-calculation: Updated {$updatedCount} scores for semester {$semesterId}");
+                log_message('info', "Discipline auto-calculation: Updated {$updatedCount} scores for semester {$semesterId}");
             }
 
-            // Get integrity data with lecturer information
-            $integrityData = $this->integrityModel->getIntegrityDataWithLecturers($semesterId);
+            // Get discipline data with lecturer information
+            $disciplineData = $this->disciplineModel->getDisciplineDataWithLecturers($semesterId);
 
             // Get statistics
-            $statistics = $this->integrityModel->getIntegrityStatistics($semesterId);
+            $statistics = $this->disciplineModel->getDisciplineStatistics($semesterId);
 
-            return view('integrity/index', [
-                'pageTitle' => 'Data Integritas | SKP Dosen',
+            return view('discipline/index', [
+                'pageTitle' => 'Data Disiplin | SKP Dosen',
                 'user' => $userData,
-                'integrityData' => $integrityData,
+                'disciplineData' => $disciplineData,
                 'currentSemester' => $currentSemester,
                 'statistics' => $statistics,
                 'calculationResult' => [
@@ -89,18 +91,18 @@ class IntegrityController extends BaseController
                 ]
             ]);
         } catch (\Exception $e) {
-            log_message('error', 'Error in integrity auto-calculation: ' . $e->getMessage());
+            log_message('error', 'Error in discipline auto-calculation: ' . $e->getMessage());
 
             // If auto-calculation fails, still show the page but with warning
-            $integrityData = $this->integrityModel->getIntegrityDataWithLecturers($semesterId);
-            $statistics = $this->integrityModel->getIntegrityStatistics($semesterId);
+            $disciplineData = $this->disciplineModel->getDisciplineDataWithLecturers($semesterId);
+            $statistics = $this->disciplineModel->getDisciplineStatistics($semesterId);
 
-            session()->setFlashdata('warning', 'Terjadi masalah saat menghitung ulang nilai integritas secara otomatis');
+            session()->setFlashdata('warning', 'Terjadi masalah saat menghitung ulang nilai disiplin secara otomatis');
 
-            return view('integrity/index', [
-                'pageTitle' => 'Data Integritas | SKP Dosen',
+            return view('discipline/index', [
+                'pageTitle' => 'Data Disiplin | SKP Dosen',
                 'user' => $userData,
-                'integrityData' => $integrityData,
+                'disciplineData' => $disciplineData,
                 'currentSemester' => $currentSemester,
                 'statistics' => $statistics,
                 'calculationResult' => ['updated' => 0]
@@ -109,7 +111,7 @@ class IntegrityController extends BaseController
     }
 
     /**
-     * Manually recalculate integrity scores (admin function)
+     * Manually recalculate discipline scores (admin function)
      */
     public function recalculateScores()
     {
@@ -124,48 +126,20 @@ class IntegrityController extends BaseController
             $semesterId = $currentSemester ? $currentSemester['id'] : null;
 
             if (!$semesterId) {
-                return redirect()->to('integrity')->with('error', 'Tidak ada semester aktif');
+                return redirect()->to('discipline')->with('error', 'Tidak ada semester aktif');
             }
 
-            $updatedCount = $this->integrityModel->recalculateAllScores($semesterId);
+            $updatedCount = $this->disciplineModel->recalculateAllScores($semesterId);
 
-            return redirect()->to('integrity')->with('success', "Berhasil memperbarui {$updatedCount} nilai integritas secara manual");
+            return redirect()->to('discipline')->with('success', "Berhasil memperbarui {$updatedCount} nilai disiplin secara manual");
         } catch (\Exception $e) {
-            log_message('error', 'Error manually recalculating integrity scores: ' . $e->getMessage());
-            return redirect()->to('integrity')->with('error', 'Gagal memperbarui nilai integritas secara manual');
+            log_message('error', 'Error manually recalculating discipline scores: ' . $e->getMessage());
+            return redirect()->to('discipline')->with('error', 'Gagal memperbarui nilai disiplin secara manual');
         }
     }
 
     /**
-     * Force recalculate all integrity scores
-     */
-    public function forceRecalculateAll()
-    {
-        // Ensure user is logged in
-        if (!session()->get('isLoggedIn')) {
-            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
-        }
-
-        try {
-            // Get current semester
-            $currentSemester = $this->semesterModel->getCurrentSemester();
-            $semesterId = $currentSemester ? $currentSemester['id'] : null;
-
-            if (!$semesterId) {
-                return redirect()->to('integrity')->with('error', 'Tidak ada semester aktif');
-            }
-
-            $updatedCount = $this->integrityModel->recalculateAllScores($semesterId);
-
-            return redirect()->to('integrity')->with('success', "Berhasil memperbarui {$updatedCount} nilai integritas");
-        } catch (\Exception $e) {
-            log_message('error', 'Error force recalculating integrity scores: ' . $e->getMessage());
-            return redirect()->to('integrity')->with('error', 'Gagal memperbarui nilai integritas');
-        }
-    }
-
-    /**
-     * Export integrity data to Excel format
+     * Export discipline data to Excel format
      */
     public function exportExcel()
     {
@@ -179,22 +153,22 @@ class IntegrityController extends BaseController
         $semesterId = $currentSemester ? $currentSemester['id'] : null;
 
         if (!$semesterId) {
-            return redirect()->to('integrity')->with('error', 'Tidak ada semester aktif untuk diekspor');
+            return redirect()->to('discipline')->with('error', 'Tidak ada semester aktif untuk diekspor');
         }
 
         // Get data
-        $integrityData = $this->integrityModel->getIntegrityDataWithLecturers($semesterId);
+        $disciplineData = $this->disciplineModel->getDisciplineDataWithLecturers($semesterId);
 
-        if (empty($integrityData)) {
-            return redirect()->to('integrity')->with('error', 'Tidak ada data integritas untuk diekspor');
+        if (empty($disciplineData)) {
+            return redirect()->to('discipline')->with('error', 'Tidak ada data disiplin untuk diekspor');
         }
 
         // In a real application, you would generate an Excel file here
-        return redirect()->to('integrity')->with('success', 'Data integritas berhasil diekspor ke Excel');
+        return redirect()->to('discipline')->with('success', 'Data disiplin berhasil diekspor ke Excel');
     }
 
     /**
-     * Export integrity data to PDF format
+     * Export discipline data to PDF format
      */
     public function exportPdf()
     {
@@ -208,18 +182,18 @@ class IntegrityController extends BaseController
         $semesterId = $currentSemester ? $currentSemester['id'] : null;
 
         if (!$semesterId) {
-            return redirect()->to('integrity')->with('error', 'Tidak ada semester aktif untuk diekspor');
+            return redirect()->to('discipline')->with('error', 'Tidak ada semester aktif untuk diekspor');
         }
 
         // Get data
-        $integrityData = $this->integrityModel->getIntegrityDataWithLecturers($semesterId);
+        $disciplineData = $this->disciplineModel->getDisciplineDataWithLecturers($semesterId);
 
-        if (empty($integrityData)) {
-            return redirect()->to('integrity')->with('error', 'Tidak ada data integritas untuk diekspor');
+        if (empty($disciplineData)) {
+            return redirect()->to('discipline')->with('error', 'Tidak ada data disiplin untuk diekspor');
         }
 
         // In a real application, you would generate a PDF file here
-        return redirect()->to('integrity')->with('success', 'Data integritas berhasil diekspor ke PDF');
+        return redirect()->to('discipline')->with('success', 'Data disiplin berhasil diekspor ke PDF');
     }
 
     /**
@@ -232,7 +206,7 @@ class IntegrityController extends BaseController
         }
 
         if (!$this->request->isAJAX()) {
-            return redirect()->to('integrity');
+            return redirect()->to('discipline');
         }
 
         try {
@@ -246,8 +220,8 @@ class IntegrityController extends BaseController
                 ]);
             }
 
-            $totalRecords = $this->integrityModel->where('semester_id', $semesterId)->countAllResults();
-            $zeroScoreRecords = $this->integrityModel->where('semester_id', $semesterId)
+            $totalRecords = $this->disciplineModel->where('semester_id', $semesterId)->countAllResults();
+            $zeroScoreRecords = $this->disciplineModel->where('semester_id', $semesterId)
                 ->where('score', 0)->countAllResults();
 
             return $this->response->setJSON([

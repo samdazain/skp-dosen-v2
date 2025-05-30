@@ -199,7 +199,8 @@
         }
 
         function updateTableInfo() {
-            const visibleRows = document.querySelectorAll('#integrityTable tbody tr[style=""], #integrityTable tbody tr:not([style])');
+            const visibleRows = document.querySelectorAll(
+                '#integrityTable tbody tr[style=""], #integrityTable tbody tr:not([style])');
             const emptyRows = document.querySelectorAll('#integrityTable tbody tr td[colspan]');
             const actualRows = visibleRows.length - emptyRows.length;
 
@@ -265,4 +266,31 @@
             alert(message);
         }
     }
+
+    // Search functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const tableRows = document.querySelectorAll('tbody tr');
+
+                tableRows.forEach(row => {
+                    // Skip rows that don't have lecturer data (like "no data" message)
+                    if (row.cells.length < 6) {
+                        return;
+                    }
+
+                    const name = row.cells[1].textContent.toLowerCase();
+
+                    if (name.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
 </script>

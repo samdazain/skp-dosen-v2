@@ -45,7 +45,7 @@ if ($currentMonth >= 7) {
                             <div class="semester-meta">
                                 <small class="text-muted d-flex align-items-center">
                                     <i class="fas fa-info-circle mr-1"></i>
-                                    Data yang ditampilkan berdasarkan semester yang sedang aktif
+                                    Data yang ditampilkan berdasarkan semester ini
                                 </small>
                             </div>
                         </div>
@@ -92,10 +92,9 @@ if ($currentMonth >= 7) {
                                 semester.
                             </p>
                             <div class="suggested-semester">
-                                <small class="text-info">
-                                    <i class="fas fa-calendar-plus mr-1"></i>
-                                    <strong>Saran:</strong> Pilih <strong><?= $expectedTerm ?> <?= $expectedYear ?></strong>
-                                    untuk bulan <?= $currentMonthName ?>
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb mr-1"></i>
+                                    <strong>Disarankan:</strong> <?= $expectedTerm ?> <?= $expectedYear ?>
                                 </small>
                             </div>
                         </div>

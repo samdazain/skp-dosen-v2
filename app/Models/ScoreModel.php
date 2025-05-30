@@ -189,7 +189,7 @@ class ScoreModel extends Model
             ['category' => 'integrity', 'subcategory' => 'courses_taught', 'range_type' => 'range', 'range_start' => 5, 'range_end' => 6, 'score' => 85, 'range_label' => '5-6'],
             ['category' => 'integrity', 'subcategory' => 'courses_taught', 'range_type' => 'above', 'range_start' => 6, 'range_end' => null, 'score' => 88, 'range_label' => '>6'],
 
-            // Data Disiplin - INTEGER VALUES
+            // Data Disiplin - INTEGER VALUES (corrected subcategory names)
             ['category' => 'discipline', 'subcategory' => 'daily_attendance', 'range_type' => 'range', 'range_start' => 1, 'range_end' => 2, 'score' => 85, 'range_label' => '1-2'],
             ['category' => 'discipline', 'subcategory' => 'daily_attendance', 'range_type' => 'range', 'range_start' => 3, 'range_end' => 4, 'score' => 80, 'range_label' => '3-4'],
             ['category' => 'discipline', 'subcategory' => 'daily_attendance', 'range_type' => 'range', 'range_start' => 5, 'range_end' => 6, 'score' => 75, 'range_label' => '5-6'],
