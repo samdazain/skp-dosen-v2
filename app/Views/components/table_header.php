@@ -5,7 +5,10 @@
     </h3>
     <div class="card-tools">
         <?php if (!empty($exportConfig)): ?>
-            <?= view('Components/export_buttons', $exportConfig) ?>
+            <?= view('Components/export_buttons', [
+                'baseUrl' => 'lecturers',
+                'exportTypes' => ['excel', 'pdf']
+            ]) ?>
         <?php endif; ?>
 
         <?php if (!empty($addUrl)): ?>

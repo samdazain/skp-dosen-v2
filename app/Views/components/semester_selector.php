@@ -40,11 +40,8 @@ if (ENVIRONMENT === 'development') {
 ?>
 
 <div class="semester-selector" data-base-url="<?= base_url() ?>"
-    data-active-semester-id="<?= $activeSemester ? $activeSemester['id'] : '' ?>"
-    data-csrf-token="<?= csrf_hash() ?>"
-    data-csrf-name="<?= csrf_token() ?>"
-    data-current-month="<?= date('n') ?>"
-    data-current-year="<?= date('Y') ?>">
+    data-active-semester-id="<?= $activeSemester ? $activeSemester['id'] : '' ?>" data-csrf-token="<?= csrf_hash() ?>"
+    data-csrf-name="<?= csrf_token() ?>" data-current-month="<?= date('n') ?>" data-current-year="<?= date('Y') ?>">
     <div class="dropdown">
         <button class="btn btn-outline-primary btn-sm dropdown-toggle d-flex align-items-center" type="button"
             id="semesterDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -109,8 +106,8 @@ if (ENVIRONMENT === 'development') {
                     <span>Tambah Semester</span>
                 </a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item d-flex align-items-center py-2 text-primary"
-                    href="#" onclick="initializeSemester()">
+                <a class="dropdown-item d-flex align-items-center py-2 text-primary" href="#"
+                    onclick="initializeSemester()">
                     <i class="fas fa-sync mr-3 fa-lg"></i>
                     <span>Atur Semester Otomatis</span>
                 </a>
@@ -165,7 +162,7 @@ if (ENVIRONMENT === 'development') {
                             icon: 'success',
                             title: 'Berhasil!',
                             text: data.message,
-                            timer: 2000,
+                            timer: 1000,
                             showConfirmButton: false
                         }).then(() => {
                             location.reload();

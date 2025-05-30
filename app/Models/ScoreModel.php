@@ -274,7 +274,7 @@ class ScoreModel extends Model
                 'title' => 'Data Integritas',
                 'subcategories' => [
                     'teaching_attendance' => [
-                        'title' => 'Absen Mengajar (Jumlah Alpha)',
+                        'title' => 'Kehadiran Mengajar',
                         'ranges' => []
                     ],
                     'courses_taught' => [
