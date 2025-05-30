@@ -109,10 +109,11 @@ class CreateAllTables extends Migration
             'id'             => ['type' => 'INT', 'auto_increment' => true],
             'lecturer_id'    => ['type' => 'INT', 'unsigned' => true],
             'semester_id'    => ['type' => 'INT', 'unsigned' => true],
-            'competence'     => ['type' => 'ENUM', 'constraint' => ['active', 'inactive']],
-            'tridharma_pass' => ['type' => 'BOOLEAN'],
-            'score'          => ['type' => 'TINYINT'],
+            'competence'     => ['type' => 'ENUM', 'constraint' => ['active', 'inactive'], 'default' => 'inactive'],
+            'tridharma_pass' => ['type' => 'BOOLEAN', 'default' => false],
+            'score'          => ['type' => 'TINYINT', 'default' => 0],
             'updated_by'     => ['type' => 'INT', 'null' => true],
+            'created_at'     => ['type' => 'DATETIME', 'null' => true],
             'updated_at'     => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);

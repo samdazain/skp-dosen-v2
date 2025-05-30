@@ -9,7 +9,7 @@ class SemesterModel extends Model
 {
     protected $table = 'semesters';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['year', 'term', 'created_at', 'updated_at'];
+    protected $allowedFields = ['year', 'term', 'updated_by', 'updated_at'];
     protected $useTimestamps = true;
 
     /**

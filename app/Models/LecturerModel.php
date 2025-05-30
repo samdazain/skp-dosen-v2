@@ -12,10 +12,12 @@ class LecturerModel extends Model
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
+    protected $protectFields = true;
 
     protected $allowedFields = [
         'nip',
         'name',
+        'email',
         'position',
         'study_program'
     ];
@@ -212,5 +214,33 @@ class LecturerModel extends Model
         $stats['by_study_program'] = $programQuery->getResultArray();
 
         return $stats;
+    }
+
+    /**
+     * Get all lecturers
+     */
+    public function getAllLecturers()
+    {
+        return $this->orderBy('name', 'ASC')->findAll();
+    }
+
+    /**
+     * Get lecturer by ID
+     */
+    public function getLecturerById($id)
+    {
+        return $this->find($id);
+    }
+
+    /**
+     * Check if lecturer exists by NIP
+     */
+    public function lecturerExistsByNip($nip, $excludeId = null)
+    {
+        $builder = $this->where('nip', $nip);
+        if ($excludeId) {
+            $builder->where('id !=', $excludeId);
+        }
+        return $builder->countAllResults() > 0;
     }
 }
