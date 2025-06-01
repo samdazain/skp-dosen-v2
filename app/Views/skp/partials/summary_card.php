@@ -16,16 +16,41 @@
 $description = $description ?? 'dari total dosen';
 ?>
 
-<div class="col-md-3 col-sm-6 col-12">
-    <div class="info-box bg-gradient-<?= $color ?>">
-        <span class="info-box-icon"><i class="<?= $icon ?>"></i></span>
-        <div class="info-box-content">
-            <span class="info-box-text"><?= $title ?></span>
-            <span class="info-box-number"><?= $count ?></span>
+<div class="col-lg-3 col-6">
+    <div class="small-box bg-<?= $color ?>">
+        <div class="inner">
+            <h3><?= $count ?></h3>
+            <p><?= $title ?></p>
             <div class="progress">
                 <div class="progress-bar" style="width: <?= $percentage ?>%"></div>
             </div>
-            <span class="progress-description"><?= $percentage ?>% <?= $description ?></span>
+            <span class="progress-description">
+                <?= $percentage ?>% dari total
+            </span>
         </div>
+        <div class="icon">
+            <i class="<?= $icon ?>"></i>
+        </div>
+        <a href="#" class="small-box-footer" onclick="filterBySKPCategory('<?= strtolower(str_replace(' ', '_', $title)) ?>')">
+            Lihat Detail <i class="fas fa-arrow-circle-right"></i>
+        </a>
     </div>
 </div>
+
+<script>
+    function filterBySKPCategory(category) {
+        // This function can be used to filter the table by SKP category
+        const categoryMap = {
+            'sangat_baik': 'Sangat Baik',
+            'baik': 'Baik',
+            'cukup': 'Cukup',
+            'kurang': 'Kurang'
+        };
+
+        const categoryValue = categoryMap[category];
+        if (categoryValue) {
+            // Update the filter and submit form
+            $('#skp_category').val(categoryValue).trigger('change');
+        }
+    }
+</script>
