@@ -33,18 +33,17 @@
             </tr>
         </thead>
         <tbody>
-            <?php if (!empty($ranges)): ?>
+            <?php if (!empty($ranges) && is_array($ranges)): ?>
                 <?php foreach ($ranges as $range): ?>
-                    <tr class="range-row" data-range-id="<?= $range['id'] ?>">
+                    <tr class="range-row" data-range-id="<?= $range['id'] ?? '' ?>">
                         <td>
                             <?= view('score/partials/range_input', [
                                 'range' => [
-                                    'id' => $range['id'],
-                                    'start' => $range['start'] ?? null,
-                                    'end' => $range['end'] ?? null,
-                                    'label' => $range['label'] ?? '',
-                                    'type' => $range['type'] ?? 'range',
-                                    'value' => $range['value'] ?? null
+                                    'id' => $range['id'] ?? '',
+                                    'start' => $range['range_start'] ?? null,
+                                    'end' => $range['range_end'] ?? null,
+                                    'label' => $range['range_label'] ?? '',
+                                    'type' => $range['range_type'] ?? 'range'
                                 ],
                                 'category' => $category,
                                 'fieldType' => 'range'
@@ -53,9 +52,12 @@
                         <td>
                             <div class="input-group">
                                 <input type="number" class="form-control text-center score-input"
-                                    name="ranges[<?= $range['id'] ?>][score]" value="<?= (int)$range['score'] ?>" required
-                                    min="0" max="100" step="1" data-range-id="<?= $range['id'] ?>"
-                                    data-category="<?= $category ?>" data-subcategory="<?= $subcategory ?>"
+                                    name="ranges[<?= $range['id'] ?? '' ?>][score]"
+                                    value="<?= (int)($range['score'] ?? 0) ?>"
+                                    required min="0" max="100" step="1"
+                                    data-range-id="<?= $range['id'] ?? '' ?>"
+                                    data-category="<?= $category ?>"
+                                    data-subcategory="<?= $subcategory ?>"
                                     <?= isset($range['editable']) && !$range['editable'] ? 'readonly' : '' ?>>
                                 <div class="input-group-append">
                                     <span class="input-group-text">pts</span>
@@ -63,7 +65,7 @@
                             </div>
                             <small class="text-muted">
                                 <i class="fas fa-info-circle"></i>
-                                Nilai bilangan bulat (tidak ada desimal)
+                                Nilai bilangan bulat (0-100)
                             </small>
                         </td>
                         <td class="text-center">
@@ -76,7 +78,8 @@
                                 'fixed' => ['Tetap', 'fas fa-lock', 'warning'],
                                 'boolean' => ['Boolean', 'fas fa-toggle-on', 'dark']
                             ];
-                            $typeInfo = $typeLabels[$range['type']] ?? ['Unknown', 'fas fa-question', 'light'];
+                            $rangeType = $range['range_type'] ?? 'range';
+                            $typeInfo = $typeLabels[$rangeType] ?? ['Unknown', 'fas fa-question', 'light'];
                             ?>
                             <span class="badge badge-<?= $typeInfo[2] ?> p-2">
                                 <i class="<?= $typeInfo[1] ?> mr-1"></i>
@@ -84,9 +87,12 @@
                             </span>
                         </td>
                         <td class="text-center">
-                            <?php if (isset($range['editable']) && $range['editable']): ?>
+                            <?php $isEditable = !isset($range['editable']) || $range['editable']; ?>
+                            <?php if ($isEditable): ?>
                                 <button type="button" class="btn btn-sm btn-outline-danger delete-range"
-                                    data-range-id="<?= $range['id'] ?>" data-toggle="modal" data-target="#deleteRangeModal"
+                                    data-range-id="<?= $range['id'] ?? '' ?>"
+                                    data-toggle="modal"
+                                    data-target="#deleteRangeModal"
                                     title="Hapus rentang nilai">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
@@ -104,10 +110,13 @@
                     <td colspan="4" class="text-center text-muted py-4">
                         <i class="fas fa-inbox fa-2x mb-2"></i>
                         <br>
-                        Belum ada rentang nilai untuk <?= esc($subcategoryTitle) ?>
+                        Belum ada rentang nilai untuk <?= esc($subcategoryTitle ?? 'kategori ini') ?>
                         <br>
-                        <button type="button" class="btn btn-primary btn-sm mt-2 add-range" data-category="<?= $category ?>"
-                            data-subcategory="<?= $subcategory ?>" data-toggle="modal" data-target="#addRangeModal">
+                        <button type="button" class="btn btn-primary btn-sm mt-2 add-range"
+                            data-category="<?= $category ?>"
+                            data-subcategory="<?= $subcategory ?>"
+                            data-toggle="modal"
+                            data-target="#addRangeModal">
                             <i class="fas fa-plus mr-1"></i>
                             Tambah Rentang Nilai
                         </button>
@@ -119,8 +128,11 @@
 
     <?php if (!empty($ranges)): ?>
         <div class="mt-2">
-            <button type="button" class="btn btn-outline-primary btn-sm add-range" data-category="<?= $category ?>"
-                data-subcategory="<?= $subcategory ?>" data-toggle="modal" data-target="#addRangeModal">
+            <button type="button" class="btn btn-outline-primary btn-sm add-range"
+                data-category="<?= $category ?>"
+                data-subcategory="<?= $subcategory ?>"
+                data-toggle="modal"
+                data-target="#addRangeModal">
                 <i class="fas fa-plus mr-1"></i>
                 Tambah Rentang Nilai
             </button>

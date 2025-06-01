@@ -108,7 +108,7 @@ class CommitmentModel extends Model
 
     /**
      * Get all lecturers with their commitment data for a specific semester with filtering
-     * Enhanced to ensure data is always available
+     * Enhanced to ensure data is always available and auto-recalculate scores
      */
     public function getAllLecturersWithCommitment($semesterId, $filters = [])
     {
@@ -118,8 +118,14 @@ class CommitmentModel extends Model
             if ($addedCount > 0) {
                 log_message('info', "Auto-populated {$addedCount} new commitment records");
             }
+
+            // Auto-recalculate ALL scores similar to DisciplineModel
+            $updatedCount = $this->recalculateAllScores($semesterId);
+            if ($updatedCount > 0) {
+                log_message('info', "Auto-recalculated {$updatedCount} commitment scores");
+            }
         } catch (\Exception $e) {
-            log_message('error', 'Error during auto-population: ' . $e->getMessage());
+            log_message('error', 'Error during auto-population and score calculation: ' . $e->getMessage());
             // Continue anyway to show existing data
         }
 
@@ -186,7 +192,197 @@ class CommitmentModel extends Model
     }
 
     /**
-     * Automatically calculate score before insert
+     * Calculate commitment score based on competence and tri dharma status
+     * ALWAYS uses database values - no fallbacks
+     * Enhanced to properly format values for score lookup
+     */
+    public function calculateCommitmentScore($competence, $triDharmaPass)
+    {
+        try {
+            // Normalize competence value for score lookup
+            $competenceValue = ($competence === 'active' || $competence === true || $competence === '1') ? 'active' : 'inactive';
+
+            // Normalize tri dharma value for score lookup
+            $triDharmaValue = ($triDharmaPass === true || $triDharmaPass === '1' || $triDharmaPass === 1) ? 'pass' : 'fail';
+
+            // Get scores from database via ScoreModel using proper subcategory names
+            $competenceScore = $this->scoreModel->getScoreForValue('commitment', 'competency', $competenceValue);
+            $triDharmaScore = $this->scoreModel->getScoreForValue('commitment', 'tri_dharma', $triDharmaValue);
+
+            // Calculate average (50% each component)
+            $totalScore = round(($competenceScore + $triDharmaScore) / 2);
+
+            log_message('debug', "Commitment score calculation - Competency ('{$competenceValue}'): {$competenceScore}, TriDharma ('{$triDharmaValue}'): {$triDharmaScore}, Average: {$totalScore}");
+
+            return (int)$totalScore;
+        } catch (\Exception $e) {
+            log_message('error', "Error calculating commitment score for competence='{$competence}', tridharma='{$triDharmaPass}': " . $e->getMessage());
+            throw new \Exception("Gagal menghitung skor komitmen: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Calculate average score for commitment data using database values
+     */
+    public function calculateAverageScore($competence, $triDharmaPass)
+    {
+        return $this->calculateCommitmentScore($competence, $triDharmaPass);
+    }
+
+    /**
+     * Update competency status with immediate score calculation and database update
+     * Enhanced with proper verification
+     */
+    public function updateCompetency($lecturerId, $semesterId, $competence, $updatedBy = null)
+    {
+        log_message('info', "Starting updateCompetency for lecturer {$lecturerId}, semester {$semesterId}, competence: {$competence}");
+
+        $competenceValue = ($competence === 'active' || $competence === true || $competence === '1') ? 'active' : 'inactive';
+
+        // Get current record to preserve tri dharma status
+        $current = $this->where([
+            'lecturer_id' => $lecturerId,
+            'semester_id' => $semesterId
+        ])->first();
+
+        $triDharmaPass = $current ? $current['tridharma_pass'] : 0;
+
+        // Calculate new score using database values - throw exception on error
+        try {
+            $newScore = $this->calculateCommitmentScore($competenceValue, $triDharmaPass);
+        } catch (\Exception $e) {
+            log_message('error', 'Error calculating commitment score: ' . $e->getMessage());
+            throw new \Exception('Gagal menghitung skor komitmen: ' . $e->getMessage());
+        }
+
+        log_message('info', "Calculated new commitment score: {$newScore} for competence: {$competenceValue}, tridharma: {$triDharmaPass}");
+
+        // Use transaction to ensure data consistency
+        $this->db->transStart();
+
+        try {
+            // Prepare update data
+            $updateData = [
+                'competence' => $competenceValue,
+                'score' => $newScore,
+                'updated_by' => $updatedBy,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($current) {
+                $result = $this->update($current['id'], $updateData);
+            } else {
+                // Create new record if doesn't exist
+                $updateData['lecturer_id'] = $lecturerId;
+                $updateData['semester_id'] = $semesterId;
+                $updateData['tridharma_pass'] = 0;
+                $result = $this->insert($updateData);
+            }
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false || !$result) {
+                throw new \Exception('Database update failed');
+            }
+
+            // Verify the update by checking the database
+            $updatedRecord = $this->where([
+                'lecturer_id' => $lecturerId,
+                'semester_id' => $semesterId
+            ])->first();
+
+            if (!$updatedRecord || (int)$updatedRecord['score'] !== $newScore) {
+                throw new \Exception('Score verification failed after update');
+            }
+
+            log_message('info', "updateCompetency completed successfully. Database score: {$updatedRecord['score']}");
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            log_message('error', 'Error in updateCompetency transaction: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Update Tri Dharma status with immediate score calculation and database update
+     * Enhanced with proper verification
+     */
+    public function updateTriDharma($lecturerId, $semesterId, $triDharmaPass, $updatedBy = null)
+    {
+        log_message('info', "Starting updateTriDharma for lecturer {$lecturerId}, semester {$semesterId}, tridharma: {$triDharmaPass}");
+
+        $triDharmaValue = ($triDharmaPass === true || $triDharmaPass === '1' || $triDharmaPass === 1) ? 1 : 0;
+
+        // Get current record to preserve competence status
+        $current = $this->where([
+            'lecturer_id' => $lecturerId,
+            'semester_id' => $semesterId
+        ])->first();
+
+        $competence = $current ? $current['competence'] : 'inactive';
+
+        // Calculate new score using database values - throw exception on error
+        try {
+            $newScore = $this->calculateCommitmentScore($competence, $triDharmaValue);
+        } catch (\Exception $e) {
+            log_message('error', 'Error calculating commitment score: ' . $e->getMessage());
+            throw new \Exception('Gagal menghitung skor komitmen: ' . $e->getMessage());
+        }
+
+        log_message('info', "Calculated new commitment score: {$newScore} for competence: {$competence}, tridharma: {$triDharmaValue}");
+
+        // Use transaction to ensure data consistency
+        $this->db->transStart();
+
+        try {
+            // Prepare update data
+            $updateData = [
+                'tridharma_pass' => $triDharmaValue,
+                'score' => $newScore,
+                'updated_by' => $updatedBy,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($current) {
+                $result = $this->update($current['id'], $updateData);
+            } else {
+                // Create new record if doesn't exist
+                $updateData['lecturer_id'] = $lecturerId;
+                $updateData['semester_id'] = $semesterId;
+                $updateData['competence'] = 'inactive';
+                $result = $this->insert($updateData);
+            }
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false || !$result) {
+                throw new \Exception('Database update failed');
+            }
+
+            // Verify the update by checking the database
+            $updatedRecord = $this->where([
+                'lecturer_id' => $lecturerId,
+                'semester_id' => $semesterId
+            ])->first();
+
+            if (!$updatedRecord || (int)$updatedRecord['score'] !== $newScore) {
+                throw new \Exception('Score verification failed after update');
+            }
+
+            log_message('info', "updateTriDharma completed successfully. Database score: {$updatedRecord['score']}");
+
+            return $result;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            log_message('error', 'Error in updateTriDharma transaction: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Automatically calculate score before insert - no fallbacks
      */
     protected function calculateScoreBeforeInsert(array $data)
     {
@@ -194,7 +390,7 @@ class CommitmentModel extends Model
             $competence = $data['data']['competence'] ?? 'inactive';
             $triDharmaPass = $data['data']['tridharma_pass'] ?? 0;
 
-            $data['data']['score'] = $this->calculateAverageScore($competence, $triDharmaPass);
+            $data['data']['score'] = $this->calculateCommitmentScore($competence, $triDharmaPass);
 
             log_message('info', "Auto-calculated score before insert: {$data['data']['score']} for competence: {$competence}, tridharma: {$triDharmaPass}");
         }
@@ -203,7 +399,7 @@ class CommitmentModel extends Model
     }
 
     /**
-     * Automatically calculate score before update
+     * Automatically calculate score before update - no fallbacks
      */
     protected function calculateScoreBeforeUpdate(array $data)
     {
@@ -219,7 +415,7 @@ class CommitmentModel extends Model
                 $triDharmaPass = $data['data']['tridharma_pass'] ?? 0;
             }
 
-            $data['data']['score'] = $this->calculateAverageScore($competence, $triDharmaPass);
+            $data['data']['score'] = $this->calculateCommitmentScore($competence, $triDharmaPass);
 
             log_message('info', "Auto-calculated score before update: {$data['data']['score']} for competence: {$competence}, tridharma: {$triDharmaPass}");
         }
@@ -228,88 +424,27 @@ class CommitmentModel extends Model
     }
 
     /**
-     * Enhanced updateOrCreateCommitment with automatic score calculation
+     * Recalculate scores that are currently 0 using database values - no fallbacks
      */
-    public function updateOrCreateCommitment($lecturerId, $semesterId, $data, $updatedBy = null)
+    public function recalculateZeroScores($semesterId)
     {
-        $existing = $this->where([
-            'lecturer_id' => $lecturerId,
-            'semester_id' => $semesterId
-        ])->first();
+        $recordsToUpdate = $this->where('semester_id', $semesterId)
+            ->where('score', 0)
+            ->findAll();
 
-        // Prepare commitment data
-        $commitmentData = array_merge($data, [
-            'lecturer_id' => $lecturerId,
-            'semester_id' => $semesterId,
-            'updated_by' => $updatedBy
-        ]);
+        $updatedCount = 0;
 
-        // Get current values for score calculation
-        if ($existing) {
-            $competence = $commitmentData['competence'] ?? $existing['competence'];
-            $triDharmaPass = $commitmentData['tridharma_pass'] ?? $existing['tridharma_pass'];
-        } else {
-            $competence = $commitmentData['competence'] ?? 'inactive';
-            $triDharmaPass = $commitmentData['tridharma_pass'] ?? 0;
+        foreach ($recordsToUpdate as $record) {
+            $newScore = $this->calculateCommitmentScore($record['competence'], $record['tridharma_pass']);
+
+            $this->update($record['id'], [
+                'score' => $newScore,
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+            $updatedCount++;
         }
 
-        // Always recalculate score when updating
-        $commitmentData['score'] = $this->calculateAverageScore($competence, $triDharmaPass);
-
-        log_message('info', "Auto-updating score in updateOrCreateCommitment: {$commitmentData['score']}");
-
-        if ($existing) {
-            return $this->update($existing['id'], $commitmentData);
-        }
-
-        return $this->insert($commitmentData);
-    }
-
-    /**
-     * Calculate average score for commitment data using ScoreModel
-     */
-    public function calculateAverageScore($competence, $triDharmaPass)
-    {
-        try {
-            // Use the ScoreModel that's already initialized
-            if (method_exists($this->scoreModel, 'calculateScore')) {
-                // Convert competence to appropriate value for ScoreModel
-                $competenceValue = ($competence === 'active') ? 'active' : 'inactive';
-
-                // Convert triDharmaPass to appropriate value for ScoreModel
-                $triDharmaValue = ($triDharmaPass == 1 || $triDharmaPass === true || $triDharmaPass === '1') ? 'pass' : 'fail';
-
-                // Use correct subcategory names as per ScoreModel
-                $competenceScore = $this->scoreModel->calculateScore('commitment', 'competency', $competenceValue);
-                $triDharmaScore = $this->scoreModel->calculateScore('commitment', 'tri_dharma', $triDharmaValue);
-
-                // Calculate weighted average (50% each component)
-                $totalScore = round(($competenceScore + $triDharmaScore) / 2);
-
-                log_message('debug', "ScoreModel calculation - Competence ({$competenceValue}): {$competenceScore}, TriDharma ({$triDharmaValue}): {$triDharmaScore}, Total: {$totalScore}");
-
-                return $totalScore;
-            }
-        } catch (\Exception $e) {
-            log_message('warning', 'ScoreModel not available for calculateAverageScore: ' . $e->getMessage());
-        }
-
-        // Fallback calculation with correct scoring
-        $competenceScore = ($competence === 'active') ? 88 : 70;
-        $triDharmaScore = ($triDharmaPass == 1 || $triDharmaPass === true || $triDharmaPass === '1') ? 88 : 70;
-        $totalScore = round(($competenceScore + $triDharmaScore) / 2);
-
-        log_message('debug', "Fallback calculation - Competence ({$competence}): {$competenceScore}, TriDharma ({$triDharmaPass}): {$triDharmaScore}, Total: {$totalScore}");
-
-        return $totalScore;
-    }
-
-    public function getScoreInfo($score)
-    {
-        if ($score >= 90) return ['text-success', 'badge-success', 'Sangat Baik'];
-        if ($score >= 76) return ['text-primary', 'badge-primary', 'Baik'];
-        if ($score >= 61) return ['text-warning', 'badge-warning', 'Cukup'];
-        return ['text-danger', 'badge-danger', 'Kurang'];
+        return $updatedCount;
     }
 
     /**
@@ -489,167 +624,6 @@ class CommitmentModel extends Model
     }
 
     /**
-     * Update competency status with proper score calculation
-     */
-    public function updateCompetency($lecturerId, $semesterId, $competence, $updatedBy = null)
-    {
-        try {
-            log_message('info', "Starting updateCompetency for lecturer {$lecturerId}, semester {$semesterId}, competence: {$competence}");
-
-            $competenceValue = ($competence === 'active' || $competence === true || $competence === '1') ? 'active' : 'inactive';
-
-            // Get current record to preserve tri dharma status
-            $current = $this->where([
-                'lecturer_id' => $lecturerId,
-                'semester_id' => $semesterId
-            ])->first();
-
-            $triDharmaPass = $current ? $current['tridharma_pass'] : 0;
-
-            // Calculate new score immediately
-            $newScore = $this->calculateAverageScore($competenceValue, $triDharmaPass);
-
-            log_message('info', "Auto-calculated new score: {$newScore} for competence: {$competenceValue}, tridharma: {$triDharmaPass}");
-
-            // Update with new score
-            $updateData = [
-                'competence' => $competenceValue,
-                'score' => $newScore,
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-
-            if ($current) {
-                $result = $this->update($current['id'], $updateData);
-            } else {
-                // Create new record if doesn't exist
-                $updateData['lecturer_id'] = $lecturerId;
-                $updateData['semester_id'] = $semesterId;
-                $updateData['tridharma_pass'] = 0;
-                $updateData['updated_by'] = $updatedBy;
-                $result = $this->insert($updateData);
-            }
-
-            log_message('info', "updateCompetency completed with auto-calculated score: {$newScore}");
-            return $result;
-        } catch (\Exception $e) {
-            log_message('error', 'Error in updateCompetency: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * Enhanced updateTriDharma with immediate score recalculation
-     */
-    public function updateTriDharma($lecturerId, $semesterId, $triDharmaPass, $updatedBy = null)
-    {
-        try {
-            log_message('info', "Starting updateTriDharma for lecturer {$lecturerId}, semester {$semesterId}, tridharma: {$triDharmaPass}");
-
-            $triDharmaValue = ($triDharmaPass === true || $triDharmaPass === '1' || $triDharmaPass === 1) ? 1 : 0;
-
-            // Get current record to preserve competence status
-            $current = $this->where([
-                'lecturer_id' => $lecturerId,
-                'semester_id' => $semesterId
-            ])->first();
-
-            $competence = $current ? $current['competence'] : 'inactive';
-
-            // Calculate new score immediately
-            $newScore = $this->calculateAverageScore($competence, $triDharmaValue);
-
-            log_message('info', "Auto-calculated new score: {$newScore} for competence: {$competence}, tridharma: {$triDharmaValue}");
-
-            // Update with new score
-            $updateData = [
-                'tridharma_pass' => $triDharmaValue,
-                'score' => $newScore,
-                'updated_at' => date('Y-m-d H:i:s')
-            ];
-
-            if ($current) {
-                $result = $this->update($current['id'], $updateData);
-            } else {
-                // Create new record if doesn't exist
-                $updateData['lecturer_id'] = $lecturerId;
-                $updateData['semester_id'] = $semesterId;
-                $updateData['competence'] = 'inactive';
-                $updateData['updated_by'] = $updatedBy;
-                $result = $this->insert($updateData);
-            }
-
-            log_message('info', "updateTriDharma completed with auto-calculated score: {$newScore}");
-            return $result;
-        } catch (\Exception $e) {
-            log_message('error', 'Error in updateTriDharma: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
-     * Bulk update with automatic score recalculation for each record
-     */
-    public function bulkUpdateCommitment($updates, $semesterId, $updatedBy = null)
-    {
-        try {
-            $this->db->transStart();
-
-            $successCount = 0;
-            $errorCount = 0;
-
-            foreach ($updates as $update) {
-                try {
-                    $lecturerId = $update['lecturer_id'] ?? null;
-                    $field = $update['field'] ?? null;
-                    $value = $update['value'] ?? null;
-
-                    if (!$lecturerId || !$field) {
-                        $errorCount++;
-                        continue;
-                    }
-
-                    // Use the enhanced update methods that auto-calculate scores
-                    if ($field === 'competence') {
-                        $result = $this->updateCompetency($lecturerId, $semesterId, $value, $updatedBy);
-                    } elseif ($field === 'tridharma') {
-                        $result = $this->updateTriDharma($lecturerId, $semesterId, $value, $updatedBy);
-                    } else {
-                        $errorCount++;
-                        continue;
-                    }
-
-                    if ($result) {
-                        $successCount++;
-                    } else {
-                        $errorCount++;
-                    }
-                } catch (\Exception $e) {
-                    log_message('error', "Error in bulk update for lecturer {$lecturerId}: " . $e->getMessage());
-                    $errorCount++;
-                }
-            }
-
-            $this->db->transComplete();
-
-            if ($this->db->transStatus() === false) {
-                throw new \Exception('Bulk update transaction failed');
-            }
-
-            log_message('info', "Bulk update completed: {$successCount} success, {$errorCount} errors");
-
-            return [
-                'success' => $successCount,
-                'errors' => $errorCount,
-                'total' => count($updates)
-            ];
-        } catch (\Exception $e) {
-            $this->db->transRollback();
-            log_message('error', 'Error in bulkUpdateCommitment: ' . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    /**
      * Sync commitment data with lecturers table (remove orphaned records)
      */
     public function syncCommitmentData($semesterId)
@@ -730,5 +704,56 @@ class CommitmentModel extends Model
             'active_competence_percentage' => $totalLecturers > 0 ? round(($activeCompetence / $totalLecturers) * 100, 1) : 0,
             'pass_tri_dharma_percentage' => $totalLecturers > 0 ? round(($passTriDharma / $totalLecturers) * 100, 1) : 0
         ];
+    }
+
+    /**
+     * Recalculate ALL scores for semester (similar to DisciplineModel)
+     */
+    public function recalculateAllScores($semesterId)
+    {
+        // Get all records for the semester
+        $allRecords = $this->where('semester_id', $semesterId)->findAll();
+
+        if (empty($allRecords)) {
+            return 0;
+        }
+
+        $updatedCount = 0;
+
+        // Use transaction for better performance
+        $this->db->transStart();
+
+        try {
+            foreach ($allRecords as $record) {
+                // Calculate new score
+                $newScore = $this->calculateCommitmentScore(
+                    $record['competence'],
+                    $record['tridharma_pass']
+                );
+
+                // Only update if score has changed
+                if ((int)$record['score'] !== $newScore) {
+                    $this->update($record['id'], [
+                        'score' => $newScore,
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ]);
+                    $updatedCount++;
+                    log_message('debug', "Updated commitment score for lecturer {$record['lecturer_id']}: {$record['score']} -> {$newScore}");
+                }
+            }
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Transaction failed');
+            }
+
+            log_message('info', "Recalculated {$updatedCount} commitment scores for semester {$semesterId}");
+            return $updatedCount;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            log_message('error', 'Error in recalculateAllScores: ' . $e->getMessage());
+            throw $e;
+        }
     }
 }

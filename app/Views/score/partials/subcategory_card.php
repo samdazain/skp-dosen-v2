@@ -14,7 +14,7 @@
         <div class="d-flex justify-content-between align-items-center">
             <h5 class="card-title m-0">
                 <i class="fas fa-cogs text-primary mr-2"></i>
-                <?= esc($subcategory['title']) ?>
+                <?= esc($subcategory['title'] ?? 'Unknown Subcategory') ?>
             </h5>
             <div class="card-tools">
                 <button type="button" class="btn btn-tool" data-toggle="collapse"
@@ -36,17 +36,17 @@
                 <input type="hidden" name="subcategory" value="<?= $subKey ?>">
 
                 <?= view('score/partials/range_table', [
-                    'ranges' => $subcategory['ranges'],
+                    'ranges' => $subcategory['ranges'] ?? [],
                     'category' => $category,
                     'subcategory' => $subKey,
-                    'subcategoryTitle' => $subcategory['title']
+                    'subcategoryTitle' => $subcategory['title'] ?? 'Unknown'
                 ]) ?>
 
                 <div class="mt-3 d-flex justify-content-between align-items-center">
                     <small class="text-muted">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Total <?= count($subcategory['ranges']) ?> rentang nilai
-                        <?php if (count($subcategory['ranges']) > 0): ?>
+                        Total <?= count($subcategory['ranges'] ?? []) ?> rentang nilai
+                        <?php if (!empty($subcategory['ranges'])): ?>
                             <span class="ml-2">
                                 <i class="fas fa-save mr-1"></i>
                                 Tekan "Simpan Perubahan" untuk menyimpan
@@ -54,7 +54,7 @@
                         <?php endif; ?>
                     </small>
                     <button type="submit" class="btn btn-primary"
-                        <?= count($subcategory['ranges']) === 0 ? 'disabled' : '' ?>>
+                        <?= empty($subcategory['ranges']) ? 'disabled' : '' ?>>
                         <i class="fas fa-save mr-1"></i>
                         Simpan Perubahan
                     </button>

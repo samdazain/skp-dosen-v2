@@ -1,282 +1,249 @@
 <script>
-    // Real-time score update functions with automatic recalculation
-
-    function confirmCompetencyChange(lecturerId, status) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Konfirmasi Perubahan',
-                text: `Ubah status kompetensi menjadi ${status ? 'Aktif' : 'Tidak Aktif'}?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Ubah!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    updateCompetencyAjax(lecturerId, status);
-                } else {
-                    // Revert radio button selection if cancelled
-                    revertRadioSelection('competency_' + lecturerId, !status);
+    $(document).ready(function() {
+        // Add CSRF token to all AJAX requests
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
                 }
-            });
-        } else {
-            // Fallback for browsers without SweetAlert
-            if (confirm(`Ubah status kompetensi menjadi ${status ? 'Aktif' : 'Tidak Aktif'}?`)) {
-                updateCompetencyAjax(lecturerId, status);
-            } else {
-                revertRadioSelection('competency_' + lecturerId, !status);
             }
-        }
+        });
+    });
+
+    function confirmCompetencyChange(lecturerId, isActive) {
+        const statusText = isActive ? 'Aktif' : 'Tidak Aktif';
+        const lecturerName = $(`tr:has([name="competency_${lecturerId}"])`).find('strong').text();
+
+        Swal.fire({
+            title: 'Konfirmasi Perubahan',
+            text: `Apakah Anda yakin ingin mengubah status kompetensi "${lecturerName}" menjadi ${statusText}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Ubah!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                updateCompetency(lecturerId, isActive);
+            } else {
+                // Reset the radio button to previous state
+                revertCompetencyRadio(lecturerId, !isActive);
+            }
+        });
     }
 
-    function confirmTriDharmaChange(lecturerId, status) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Konfirmasi Perubahan',
-                text: `Ubah status Tri Dharma menjadi ${status ? 'Lulus' : 'Tidak Lulus'}?`,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Ya, Ubah!',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    updateTriDharmaAjax(lecturerId, status);
-                } else {
-                    // Revert radio button selection if cancelled
-                    revertRadioSelection('tri_dharma_' + lecturerId, !status);
-                }
-            });
-        } else {
-            // Fallback for browsers without SweetAlert
-            if (confirm(`Ubah status Tri Dharma menjadi ${status ? 'Lulus' : 'Tidak Lulus'}?`)) {
-                updateTriDharmaAjax(lecturerId, status);
+    function confirmTriDharmaChange(lecturerId, isPassing) {
+        const statusText = isPassing ? 'Lulus' : 'Tidak Lulus';
+        const lecturerName = $(`tr:has([name="tri_dharma_${lecturerId}"])`).find('strong').text();
+
+        Swal.fire({
+            title: 'Konfirmasi Perubahan',
+            text: `Apakah Anda yakin ingin mengubah status Tri Dharma "${lecturerName}" menjadi ${statusText}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Ya, Ubah!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                updateTriDharma(lecturerId, isPassing);
             } else {
-                revertRadioSelection('tri_dharma_' + lecturerId, !status);
+                // Reset the radio button to previous state
+                revertTriDharmaRadio(lecturerId, !isPassing);
             }
-        }
+        });
     }
 
-    function updateCompetencyAjax(lecturerId, status) {
-        // Show loading indicator
-        showLoadingIndicator(`Memperbarui kompetensi...`);
+    function updateCompetency(lecturerId, status) {
+        // Show loading
+        Swal.fire({
+            title: 'Memperbarui...',
+            text: 'Sedang memperbarui status kompetensi dan menghitung ulang nilai berdasarkan database',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         $.ajax({
             url: '<?= base_url('commitment/update-competency') ?>',
-            type: 'POST',
+            method: 'POST',
             data: {
                 lecturer_id: lecturerId,
-                status: status ? 'true' : 'false',
-                '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+                status: status
             },
             dataType: 'json',
             success: function(response) {
-                hideLoadingIndicator();
-
                 if (response.success) {
-                    // Update the score display immediately
-                    updateScoreDisplay(lecturerId, response.new_score);
-
-                    // Show success message
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: response.message + ` Skor baru: ${response.new_score}`,
-                            icon: 'success',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    }
-
-                    // Update statistics if needed
-                    updateStatisticsDisplay();
-
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: response.message + ` (Nilai baru: ${response.new_score})`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Auto-refresh page to show updated scores
+                        window.location.reload();
+                    });
                 } else {
-                    // Revert radio button selection on failure
-                    revertRadioSelection('competency_' + lecturerId, !status);
-
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire('Error!', response.message, 'error');
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: response.message || 'Terjadi kesalahan saat memperbarui status kompetensi'
+                    });
+                    // Reset radio button
+                    revertCompetencyRadio(lecturerId, !status);
                 }
             },
             error: function(xhr, status, error) {
-                hideLoadingIndicator();
-                console.error('AJAX Error:', error);
+                Swal.close();
+                let errorMessage = 'Terjadi kesalahan sistem. Silakan coba lagi.';
 
-                // Revert radio button selection on error
-                revertRadioSelection('competency_' + lecturerId, !status);
-
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error!', 'Terjadi kesalahan saat memperbarui data', 'error');
-                } else {
-                    alert('Terjadi kesalahan saat memperbarui data');
+                // Try to get specific error message from response
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMessage = response.message;
+                        }
+                    } catch (e) {
+                        // If response is not JSON, show generic error
+                        console.error('Non-JSON error response:', xhr.responseText);
+                    }
                 }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: errorMessage,
+                    footer: '<small>Periksa pengaturan skor di menu Settings jika masalah berlanjut</small>'
+                });
+                // Reset radio button
+                revertCompetencyRadio(lecturerId, !status);
             }
         });
     }
 
-    function updateTriDharmaAjax(lecturerId, status) {
-        // Show loading indicator
-        showLoadingIndicator(`Memperbarui Tri Dharma...`);
+    function updateTriDharma(lecturerId, status) {
+        // Show loading
+        Swal.fire({
+            title: 'Memperbarui...',
+            text: 'Sedang memperbarui status Tri Dharma dan menghitung ulang nilai berdasarkan database',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         $.ajax({
-            url: '<?= base_url('commitment/update-tri-dharma') ?>',
-            type: 'POST',
+            url: '<?= base_url('commitment/update-tridharma') ?>',
+            method: 'POST',
             data: {
                 lecturer_id: lecturerId,
-                status: status ? 'true' : 'false',
-                '<?= csrf_token() ?>': '<?= csrf_hash() ?>'
+                status: status
             },
             dataType: 'json',
             success: function(response) {
-                hideLoadingIndicator();
-
                 if (response.success) {
-                    // Update the score display immediately
-                    updateScoreDisplay(lecturerId, response.new_score);
-
-                    // Show success message
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: response.message + ` Skor baru: ${response.new_score}`,
-                            icon: 'success',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    }
-
-                    // Update statistics if needed
-                    updateStatisticsDisplay();
-
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Berhasil!',
+                        text: response.message + ` (Nilai baru: ${response.new_score})`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Auto-refresh page to show updated scores
+                        window.location.reload();
+                    });
                 } else {
-                    // Revert radio button selection on failure
-                    revertRadioSelection('tri_dharma_' + lecturerId, !status);
-
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire('Error!', response.message, 'error');
-                    } else {
-                        alert('Error: ' + response.message);
-                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: response.message || 'Terjadi kesalahan saat memperbarui status Tri Dharma'
+                    });
+                    // Reset radio button
+                    revertTriDharmaRadio(lecturerId, !status);
                 }
             },
             error: function(xhr, status, error) {
-                hideLoadingIndicator();
-                console.error('AJAX Error:', error);
+                Swal.close();
+                let errorMessage = 'Terjadi kesalahan sistem. Silakan coba lagi.';
 
-                // Revert radio button selection on error
-                revertRadioSelection('tri_dharma_' + lecturerId, !status);
-
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire('Error!', 'Terjadi kesalahan saat memperbarui data', 'error');
-                } else {
-                    alert('Terjadi kesalahan saat memperbarui data');
+                // Try to get specific error message from response
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseText) {
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMessage = response.message;
+                        }
+                    } catch (e) {
+                        // If response is not JSON, show generic error
+                        console.error('Non-JSON error response:', xhr.responseText);
+                    }
                 }
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: errorMessage,
+                    footer: '<small>Periksa pengaturan skor di menu Settings jika masalah berlanjut</small>'
+                });
+                // Reset radio button
+                revertTriDharmaRadio(lecturerId, !status);
             }
         });
     }
 
-    function updateScoreDisplay(lecturerId, newScore) {
-        // Find the row for this lecturer
-        const row = $(`input[name^="competency_${lecturerId}"]`).closest('tr');
-
-        if (row.length) {
-            // Update score column (ensure we have a valid score)
-            const scoreCell = row.find('td').eq(6); // 7th column (0-indexed)
-            const displayScore = newScore > 0 ? newScore : 70; // Minimum fallback score
-
-            scoreCell.text(displayScore);
-
-            // Update score color class
-            scoreCell.removeClass('text-success text-primary text-warning text-danger');
-            if (displayScore >= 90) {
-                scoreCell.addClass('text-success');
-            } else if (displayScore >= 76) {
-                scoreCell.addClass('text-primary');
-            } else if (displayScore >= 61) {
-                scoreCell.addClass('text-warning');
-            } else {
-                scoreCell.addClass('text-danger');
-            }
-
-            // Update status badge
-            const statusCell = row.find('td').eq(7); // 8th column (0-indexed)
-            const statusBadge = statusCell.find('.badge');
-
-            statusBadge.removeClass('badge-success badge-primary badge-warning badge-danger');
-            if (displayScore >= 90) {
-                statusBadge.addClass('badge-success').text('Sangat Baik');
-            } else if (displayScore >= 76) {
-                statusBadge.addClass('badge-primary').text('Baik');
-            } else if (displayScore >= 61) {
-                statusBadge.addClass('badge-warning').text('Cukup');
-            } else {
-                statusBadge.addClass('badge-danger').text('Kurang');
-            }
-
-            // Add brief highlight effect
-            row.addClass('table-warning');
-            setTimeout(() => {
-                row.removeClass('table-warning');
-            }, 1500);
+    function revertCompetencyRadio(lecturerId, wasActive) {
+        if (wasActive) {
+            $(`input[name="competency_${lecturerId}"][value="yes"]`).prop('checked', true).closest('label').addClass('active');
+            $(`input[name="competency_${lecturerId}"][value="no"]`).prop('checked', false).closest('label').removeClass('active');
+        } else {
+            $(`input[name="competency_${lecturerId}"][value="no"]`).prop('checked', true).closest('label').addClass('active');
+            $(`input[name="competency_${lecturerId}"][value="yes"]`).prop('checked', false).closest('label').removeClass('active');
         }
     }
 
-    function revertRadioSelection(groupName, correctValue) {
-        const radios = $(`input[name="${groupName}"]`);
-        radios.each(function() {
-            if ((correctValue && this.value === 'yes') ||
-                (correctValue && this.value === 'pass') ||
-                (!correctValue && this.value === 'no') ||
-                (!correctValue && this.value === 'fail')) {
-                this.checked = true;
-                $(this).parent().addClass('active');
-            } else {
-                this.checked = false;
-                $(this).parent().removeClass('active');
-            }
-        });
-    }
-
-    function showLoadingIndicator(message = 'Memproses...') {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: message,
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                willOpen: () => {
-                    Swal.showLoading();
-                }
-            });
+    function revertTriDharmaRadio(lecturerId, wasPassing) {
+        if (wasPassing) {
+            $(`input[name="tri_dharma_${lecturerId}"][value="pass"]`).prop('checked', true).closest('label').addClass('active');
+            $(`input[name="tri_dharma_${lecturerId}"][value="fail"]`).prop('checked', false).closest('label').removeClass('active');
+        } else {
+            $(`input[name="tri_dharma_${lecturerId}"][value="fail"]`).prop('checked', true).closest('label').addClass('active');
+            $(`input[name="tri_dharma_${lecturerId}"][value="pass"]`).prop('checked', false).closest('label').removeClass('active');
         }
-    }
-
-    function hideLoadingIndicator() {
-        if (typeof Swal !== 'undefined') {
-            Swal.close();
-        }
-    }
-
-    function updateStatisticsDisplay() {
-        // Optionally reload statistics section via AJAX
-        // This can be implemented if you want to update statistics in real-time
-        setTimeout(() => {
-            location.reload(); // Simple approach - reload page to refresh statistics
-        }, 1000);
     }
 
     // Search functionality
-    $(document).ready(function() {
-        $('#searchInput').on('keyup', function() {
-            const value = $(this).val().toLowerCase();
-            $('table tbody tr').filter(function() {
-                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-            });
+    $('#searchInput').on('keyup', function() {
+        const value = $(this).val().toLowerCase();
+        $('table tbody tr').filter(function() {
+            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
         });
     });
+
+    // Function to refresh commitment data manually
+    function refreshCommitmentData() {
+        Swal.fire({
+            title: 'Memuat Data...',
+            text: 'Sedang menyinkronkan data komitmen dosen dan menghitung ulang skor',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
 </script>

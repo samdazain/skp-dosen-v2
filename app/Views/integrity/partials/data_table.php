@@ -90,7 +90,7 @@
                                     echo '<span class="badge badge-success">Sangat Baik</span>';
                                 } elseif ($score >= 75) {
                                     echo '<span class="badge badge-primary">Baik</span>';
-                                } elseif ($score >= 60) {
+                                } elseif ($score >= 61) {
                                     echo '<span class="badge badge-warning">Cukup</span>';
                                 } else {
                                     echo '<span class="badge badge-danger">Kurang</span>';

@@ -21,19 +21,19 @@ $studyProgramMap = [
  */
 function getScoreStyles($score): array
 {
-    if ($score >= 90) {
+    if ($score >= 88) {
         return [
             'scoreClass' => 'text-success',
             'scoreLabel' => 'Sangat Baik',
             'badgeClass' => 'badge-success'
         ];
-    } elseif ($score >= 80) {
+    } elseif ($score >= 76) {
         return [
             'scoreClass' => 'text-primary',
             'scoreLabel' => 'Baik',
             'badgeClass' => 'badge-primary'
         ];
-    } elseif ($score >= 70) {
+    } elseif ($score >= 61) {
         return [
             'scoreClass' => 'text-warning',
             'scoreLabel' => 'Cukup',

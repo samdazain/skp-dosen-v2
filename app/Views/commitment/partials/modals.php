@@ -1,3 +1,6 @@
+<!-- Commitment Modals -->
+<!-- Add any commitment-specific modals here if needed -->
+
 <!-- Competency Confirmation Modal -->
 <div class="modal fade" id="competencyModal" tabindex="-1" role="dialog" aria-labelledby="competencyModalLabel"
     aria-hidden="true">

@@ -91,9 +91,11 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->group('commitment', static function ($routes) {
         $routes->get('', 'CommitmentController::index');
         $routes->post('update-competency', 'CommitmentController::updateCompetency');
-        $routes->post('update-tri-dharma', 'CommitmentController::updateTriDharma');
+        $routes->post('update-tridharma', 'CommitmentController::updateTriDharma');
         $routes->get('export-excel', 'CommitmentController::exportExcel');
         $routes->get('export-pdf', 'CommitmentController::exportPdf');
+        $routes->post('bulk-update', 'CommitmentController::bulkUpdate');
+        $routes->get('recalculate-scores', 'CommitmentController::recalculateScores');
     });
 
     // Cooperation

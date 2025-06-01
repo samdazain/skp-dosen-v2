@@ -1,20 +1,20 @@
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Data Komitmen Dosen Fakultas</h3>
+        <h3 class="card-title">Data Kerja Sama Dosen Fakultas</h3>
         <div class="card-tools">
             <div class="btn-group mr-2">
-                <a href="<?= base_url('commitment/export-excel') . '?' . http_build_query(request()->getGet()) ?>"
+                <a href="<?= base_url('cooperation/export-excel') . '?' . http_build_query(request()->getGet()) ?>"
                     class="btn btn-sm btn-success">
                     <i class="fas fa-file-excel mr-1"></i> Export Excel
                 </a>
-                <a href="<?= base_url('commitment/export-pdf') . '?' . http_build_query(request()->getGet()) ?>"
+                <a href="<?= base_url('cooperation/export-pdf') . '?' . http_build_query(request()->getGet()) ?>"
                     class="btn btn-sm btn-danger">
                     <i class="fas fa-file-pdf mr-1"></i> Export PDF
                 </a>
-                <button type="button" class="btn btn-sm btn-info" onclick="refreshCommitmentData()">
+                <button type="button" class="btn btn-sm btn-info" onclick="refreshCooperationData()">
                     <i class="fas fa-sync-alt mr-1"></i> Refresh Data
                 </button>
-                <a href="<?= base_url('commitment/recalculate-scores') ?>" class="btn btn-sm btn-warning">
+                <a href="<?= base_url('cooperation/recalculate-scores') ?>" class="btn btn-sm btn-warning">
                     <i class="fas fa-calculator mr-1"></i> Hitung Ulang Semua
                 </a>
             </div>
@@ -30,22 +30,16 @@
         </div>
     </div>
 
-    <!-- Auto-calculation notice -->
+    <!-- Auto-population notice -->
     <div class="card-body p-2" style="background-color: #f8f9fa; border-bottom: 1px solid #dee2e6;">
         <small class="text-muted">
             <i class="fas fa-info-circle mr-1"></i>
-            <strong>Sistem Auto-Kalkulasi:</strong> Skor dihitung ulang otomatis setiap kali halaman dimuat atau ada
-            perubahan data.
+            Data kerja sama dosen diperbarui secara otomatis setiap kali halaman dimuat.
+            <strong>Skor akan dihitung ulang secara otomatis</strong> setiap kali ada perubahan pada tingkat kerja sama.
             Total dosen: <strong><?= count($lecturersData) ?></strong>
-            <?php if (isset($autoPopulationResult)): ?>
-                <?php if ($autoPopulationResult['added'] > 0): ?>
-                    | <span class="text-success">Baru ditambahkan: <strong><?= $autoPopulationResult['added'] ?></strong>
-                        record</span>
-                <?php endif; ?>
-                <?php if ($autoPopulationResult['updated'] > 0): ?>
-                    | <span class="text-primary">Diperbarui: <strong><?= $autoPopulationResult['updated'] ?></strong>
-                        skor</span>
-                <?php endif; ?>
+            <?php if (isset($autoPopulationResult) && $autoPopulationResult['added'] > 0): ?>
+                | <span class="text-success">Baru ditambahkan: <strong><?= $autoPopulationResult['added'] ?></strong>
+                    record</span>
             <?php endif; ?>
             | Semester:
             <strong><?= $currentSemester['year'] ?>/<?= $currentSemester['term'] === '1' ? 'Ganjil' : 'Genap' ?></strong>
@@ -60,9 +54,8 @@
                     <th>Nama Dosen</th>
                     <th class="text-center">Jabatan</th>
                     <th class="text-center">Program Studi</th>
-                    <th class="text-center">Kompetensi (Aktif)</th>
-                    <th class="text-center">Tri Dharma (BKD)</th>
-                    <th class="text-center">Nilai Rata-rata</th>
+                    <th class="text-center">Level Kerjasama</th>
+                    <th class="text-center">Nilai</th>
                     <th class="text-center">Status</th>
                 </tr>
             </thead>
@@ -70,21 +63,31 @@
                 <?php if (!empty($lecturersData)): ?>
                     <?php foreach ($lecturersData as $i => $lecturer): ?>
                         <?php
-                        // Use the actual score from database
-                        $averageScore = (int)$lecturer['score'];
+                        // Calculate score with improved logic
+                        $score = $lecturer['score'] ?: 0;
+                        if ($score == 0) {
+                            // Use the same calculation logic as the model
+                            $levelValues = [
+                                'very_cooperative' == 88,
+                                'cooperative' => 80,
+                                'fair' => 75,
+                                'not_cooperative' => 60
+                            ];
+                            $score = $levelValues[$lecturer['level']] ?? 60;
+                        }
 
                         // Get score classification
-                        if ($averageScore >= 88) {
+                        if ($score >= 88) {
                             $scoreClass = 'text-success';
                             $badgeClass = 'badge-success';
                             $statusLabel = 'Sangat Baik';
-                        } elseif ($averageScore >= 76) {
+                        } elseif ($score >= 76) {
                             $scoreClass = 'text-primary';
                             $badgeClass = 'badge-primary';
                             $statusLabel = 'Baik';
-                        } elseif ($averageScore >= 61) {
-                            $scoreClass = 'text-warning';
-                            $badgeClass = 'badge-warning';
+                        } elseif ($score >= 61) {
+                            $scoreClass = 'text-info';
+                            $badgeClass = 'badge-info';
                             $statusLabel = 'Cukup';
                         } else {
                             $scoreClass = 'text-danger';
@@ -102,8 +105,7 @@
                             default => $lecturer['study_program'] ?? '-'
                         };
                         ?>
-                        <tr data-position="<?= esc($lecturer['position']) ?>"
-                            data-program="<?= esc($lecturer['study_program']) ?>">
+                        <tr>
                             <td class="text-center"><?= $i + 1 ?></td>
                             <td>
                                 <div>
@@ -120,42 +122,28 @@
                                 <span class="badge badge-secondary"><?= esc($programStudyLabel) ?></span>
                             </td>
                             <td class="text-center">
-                                <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                                    <label
-                                        class="btn btn-xs btn-outline-success <?= $lecturer['competence'] === 'active' ? 'active' : '' ?>">
-                                        <input type="radio" name="competency_<?= $lecturer['lecturer_id'] ?>" value="yes"
-                                            <?= $lecturer['competence'] === 'active' ? 'checked' : '' ?>
-                                            onclick="confirmCompetencyChange(<?= $lecturer['lecturer_id'] ?>, true)"> Ya
-                                    </label>
-                                    <label
-                                        class="btn btn-xs btn-outline-danger <?= $lecturer['competence'] !== 'active' ? 'active' : '' ?>">
-                                        <input type="radio" name="competency_<?= $lecturer['lecturer_id'] ?>" value="no"
-                                            <?= $lecturer['competence'] !== 'active' ? 'checked' : '' ?>
-                                            onclick="confirmCompetencyChange(<?= $lecturer['lecturer_id'] ?>, false)">
-                                        Tidak
-                                    </label>
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                                    <label
-                                        class="btn btn-xs btn-outline-success <?= $lecturer['tridharma_pass'] == 1 ? 'active' : '' ?>">
-                                        <input type="radio" name="tri_dharma_<?= $lecturer['lecturer_id'] ?>" value="pass"
-                                            <?= $lecturer['tridharma_pass'] == 1 ? 'checked' : '' ?>
-                                            onclick="confirmTriDharmaChange(<?= $lecturer['lecturer_id'] ?>, true)">
-                                        Lulus
-                                    </label>
-                                    <label
-                                        class="btn btn-xs btn-outline-danger <?= $lecturer['tridharma_pass'] != 1 ? 'active' : '' ?>">
-                                        <input type="radio" name="tri_dharma_<?= $lecturer['lecturer_id'] ?>" value="fail"
-                                            <?= $lecturer['tridharma_pass'] != 1 ? 'checked' : '' ?>
-                                            onclick="confirmTriDharmaChange(<?= $lecturer['lecturer_id'] ?>, false)">
-                                        Tidak
-                                    </label>
-                                </div>
+                                <select class="form-control form-control-sm cooperation-level-dropdown"
+                                    data-lecturer-id="<?= $lecturer['lecturer_id'] ?>"
+                                    onchange="confirmCooperationChange(<?= $lecturer['lecturer_id'] ?>, this.value)"
+                                    style="width: 180px; margin: 0 auto; cursor: pointer;">
+                                    <option value="not_cooperative"
+                                        <?= $lecturer['level'] === 'not_cooperative' ? 'selected' : '' ?>>
+                                        Tidak Kooperatif
+                                    </option>
+                                    <option value="fair" <?= $lecturer['level'] === 'fair' ? 'selected' : '' ?>>
+                                        Cukup Kooperatif
+                                    </option>
+                                    <option value="cooperative" <?= $lecturer['level'] === 'cooperative' ? 'selected' : '' ?>>
+                                        Kooperatif
+                                    </option>
+                                    <option value="very_cooperative"
+                                        <?= $lecturer['level'] === 'very_cooperative' ? 'selected' : '' ?>>
+                                        Sangat Kooperatif
+                                    </option>
+                                </select>
                             </td>
                             <td class="text-center font-weight-bold <?= $scoreClass ?>"
-                                id="score_<?= $lecturer['lecturer_id'] ?>"><?= $averageScore ?></td>
+                                id="score_<?= $lecturer['lecturer_id'] ?>"><?= $score ?></td>
                             <td class="text-center" id="status_<?= $lecturer['lecturer_id'] ?>">
                                 <span class="badge <?= $badgeClass ?>"><?= $statusLabel ?></span>
                             </td>
@@ -163,11 +151,11 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="8" class="text-center">
+                        <td colspan="7" class="text-center">
                             <div class="py-4">
                                 <i class="fas fa-users fa-3x text-muted mb-3"></i>
                                 <p class="text-muted">Belum ada data dosen untuk semester ini</p>
-                                <button type="button" class="btn btn-primary" onclick="refreshCommitmentData()">
+                                <button type="button" class="btn btn-primary" onclick="refreshCooperationData()">
                                     <i class="fas fa-sync-alt mr-1"></i> Muat Data Dosen
                                 </button>
                             </div>
@@ -180,11 +168,11 @@
 </div>
 
 <script>
-    function refreshCommitmentData() {
+    function refreshCooperationData() {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 title: 'Memuat Data...',
-                text: 'Sedang menyinkronkan data komitmen dosen dan menghitung ulang skor',
+                text: 'Sedang menyinkronkan data kerja sama dosen dan menghitung ulang skor',
                 allowOutsideClick: false,
                 showConfirmButton: false,
                 willOpen: () => {
@@ -198,18 +186,63 @@
         }, 1000);
     }
 
-    // Ensure jQuery and other dependencies are loaded for AJAX functionality
+    // Search functionality
     $(document).ready(function() {
-        // Add CSRF token to all AJAX requests
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-                }
-            }
+        $('#searchInput').on('keyup', function() {
+            const value = $(this).val().toLowerCase();
+            $('table tbody tr').filter(function() {
+                $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
+            });
         });
     });
 </script>
 
-<!-- Include the enhanced scripts for real-time updates -->
-<?= view('commitment/partials/scripts') ?>
+<style>
+    .cooperation-level-dropdown {
+        border-width: 2px !important;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .cooperation-level-dropdown:focus {
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+    }
+
+    .cooperation-level-dropdown option {
+        color: #495057 !important;
+        background-color: white !important;
+    }
+
+    /* Color styling for different levels */
+    .border-danger {
+        border-color: #dc3545 !important;
+    }
+
+    .border-warning {
+        border-color: #ffc107 !important;
+    }
+
+    .border-info {
+        border-color: #17a2b8 !important;
+    }
+
+    .border-success {
+        border-color: #28a745 !important;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .text-warning {
+        color: #856404 !important;
+    }
+
+    .text-info {
+        color: #17a2b8 !important;
+    }
+
+    .text-success {
+        color: #28a745 !important;
+    }
+</style>

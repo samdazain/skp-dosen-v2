@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Integrity Status Component
  * 
@@ -8,15 +9,15 @@
 $score = (int)($score ?? 0);
 
 // Determine status based on score
-if ($score >= 85) {
+if ($score >= 88) {
     $status = 'Sangat Baik';
     $class = 'text-success';
     $icon = 'fas fa-check-circle';
-} elseif ($score >= 75) {
+} elseif ($score >= 76) {
     $status = 'Baik';
     $class = 'text-primary';
     $icon = 'fas fa-thumbs-up';
-} elseif ($score >= 60) {
+} elseif ($score >= 61) {
     $status = 'Cukup';
     $class = 'text-warning';
     $icon = 'fas fa-exclamation-triangle';

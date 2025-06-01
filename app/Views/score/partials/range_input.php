@@ -9,16 +9,23 @@
  */
 ?>
 
-<?php if (isset($range['type']) && $range['type'] == 'boolean'): ?>
+<?php
+$rangeType = $range['type'] ?? 'range';
+$rangeStart = $range['start'] ?? null;
+$rangeEnd = $range['end'] ?? null;
+$rangeLabel = $range['label'] ?? '';
+$rangeId = $range['id'] ?? '';
+
+// Determine if this category should use integers
+$useIntegers = in_array($category ?? '', ['integrity', 'discipline']);
+$stepValue = $useIntegers ? '1' : '0.01';
+$inputType = 'number';
+?>
+
+<?php if ($rangeType === 'boolean'): ?>
     <!-- Boolean type ranges -->
     <?php
-    // Determine boolean value from label or existing value
-    $boolValue = false;
-    if (isset($range['value'])) {
-        $boolValue = $range['value'];
-    } elseif (isset($range['label'])) {
-        $boolValue = in_array(strtolower($range['label']), ['ada', 'lulus', 'aktif', 'yes', 'true', '1']);
-    }
+    $boolValue = in_array(strtolower($rangeLabel), ['ada', 'lulus', 'aktif', 'yes', 'true', '1', 'pass']);
     ?>
     <div class="input-group">
         <div class="input-group-prepend">
@@ -26,13 +33,15 @@
                 <i class="fas fa-<?= $boolValue ? 'check' : 'times' ?> text-<?= $boolValue ? 'success' : 'danger' ?>"></i>
             </span>
         </div>
-        <input type="text" class="form-control" name="ranges[<?= $range['id'] ?>][label]"
-            value="<?= esc($range['label'] ?? '') ?>" required>
-        <input type="hidden" name="ranges[<?= $range['id'] ?>][type]" value="boolean">
-        <input type="hidden" name="ranges[<?= $range['id'] ?>][value]" value="<?= $boolValue ? 'true' : 'false' ?>">
+        <input type="text" class="form-control"
+            name="ranges[<?= $rangeId ?>][label]"
+            value="<?= esc($rangeLabel) ?>"
+            placeholder="Contoh: Ada, Lulus, Aktif"
+            required>
+        <input type="hidden" name="ranges[<?= $rangeId ?>][type]" value="boolean">
     </div>
 
-<?php elseif (isset($range['type']) && $range['type'] == 'fixed'): ?>
+<?php elseif ($rangeType === 'fixed'): ?>
     <!-- Fixed type ranges -->
     <div class="input-group">
         <div class="input-group-prepend">
@@ -40,21 +49,18 @@
                 <i class="fas fa-tag"></i>
             </span>
         </div>
-        <input type="text" class="form-control" name="ranges[<?= $range['id'] ?>][label]"
-            value="<?= esc($range['label'] ?? '') ?>" required>
-        <input type="hidden" name="ranges[<?= $range['id'] ?>][type]" value="fixed">
+        <input type="text" class="form-control"
+            name="ranges[<?= $rangeId ?>][label]"
+            value="<?= esc($rangeLabel) ?>"
+            placeholder="Contoh: Tidak Kooperatif, Sangat Baik"
+            required>
+        <input type="hidden" name="ranges[<?= $rangeId ?>][type]" value="fixed">
     </div>
 
 <?php else: ?>
     <!-- Numeric ranges -->
-    <?php
-    // Determine if this category should use integers
-    $useIntegers = in_array($category ?? '', ['integrity', 'discipline']);
-    $stepValue = $useIntegers ? '1' : '0.01';
-    $inputType = $useIntegers ? 'number' : 'number';
-    ?>
     <div class="input-group">
-        <?php if (($range['start'] ?? null) === null): ?>
+        <?php if ($rangeStart === null && $rangeEnd !== null): ?>
             <!-- Less than range -->
             <div class="input-group-prepend">
                 <span class="input-group-text text-info">
@@ -63,14 +69,15 @@
             </div>
             <input type="<?= $inputType ?>"
                 class="form-control"
-                name="ranges[<?= $range['id'] ?>][end]"
-                value="<?= $range['end'] ?? '' ?>"
+                name="ranges[<?= $rangeId ?>][end]"
+                value="<?= $rangeEnd ?>"
                 step="<?= $stepValue ?>"
-                <?= $useIntegers ? 'min="0"' : 'min="0"' ?>
+                min="0"
+                placeholder="Nilai maksimum"
                 required>
-            <input type="hidden" name="ranges[<?= $range['id'] ?>][start]" value="">
+            <input type="hidden" name="ranges[<?= $rangeId ?>][start]" value="">
 
-        <?php elseif (($range['end'] ?? null) === null): ?>
+        <?php elseif ($rangeStart !== null && $rangeEnd === null): ?>
             <!-- Greater than range -->
             <div class="input-group-prepend">
                 <span class="input-group-text text-success">
@@ -79,31 +86,51 @@
             </div>
             <input type="<?= $inputType ?>"
                 class="form-control"
-                name="ranges[<?= $range['id'] ?>][start]"
-                value="<?= $range['start'] ?? '' ?>"
+                name="ranges[<?= $rangeId ?>][start]"
+                value="<?= $rangeStart ?>"
                 step="<?= $stepValue ?>"
-                <?= $useIntegers ? 'min="0"' : 'min="0"' ?>
+                min="0"
+                placeholder="Nilai minimum"
                 required>
-            <input type="hidden" name="ranges[<?= $range['id'] ?>][end]" value="">
+            <input type="hidden" name="ranges[<?= $rangeId ?>][end]" value="">
+
+        <?php elseif ($rangeStart === $rangeEnd): ?>
+            <!-- Exact value -->
+            <div class="input-group-prepend">
+                <span class="input-group-text text-secondary">
+                    <i class="fas fa-equals"></i>
+                </span>
+            </div>
+            <input type="<?= $inputType ?>"
+                class="form-control"
+                name="ranges[<?= $rangeId ?>][start]"
+                value="<?= $rangeStart ?>"
+                step="<?= $stepValue ?>"
+                min="0"
+                placeholder="Nilai tepat"
+                required>
+            <input type="hidden" name="ranges[<?= $rangeId ?>][end]" value="<?= $rangeEnd ?>">
 
         <?php else: ?>
             <!-- Between range -->
             <input type="<?= $inputType ?>"
                 class="form-control"
-                name="ranges[<?= $range['id'] ?>][start]"
-                value="<?= $range['start'] ?? '' ?>"
+                name="ranges[<?= $rangeId ?>][start]"
+                value="<?= $rangeStart ?>"
                 step="<?= $stepValue ?>"
-                <?= $useIntegers ? 'min="0"' : 'min="0"' ?>
+                min="0"
+                placeholder="Dari"
                 required>
             <div class="input-group-prepend input-group-append">
                 <span class="input-group-text">-</span>
             </div>
             <input type="<?= $inputType ?>"
                 class="form-control"
-                name="ranges[<?= $range['id'] ?>][end]"
-                value="<?= $range['end'] ?? '' ?>"
+                name="ranges[<?= $rangeId ?>][end]"
+                value="<?= $rangeEnd ?>"
                 step="<?= $stepValue ?>"
-                <?= $useIntegers ? 'min="0"' : 'min="0"' ?>
+                min="0"
+                placeholder="Sampai"
                 required>
         <?php endif; ?>
 
@@ -115,4 +142,5 @@
             </div>
         <?php endif; ?>
     </div>
+    <input type="hidden" name="ranges[<?= $rangeId ?>][type]" value="<?= $rangeType ?>">
 <?php endif; ?>

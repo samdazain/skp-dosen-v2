@@ -402,11 +402,11 @@ class DisciplineModel extends Model
 
             // Distribute overall scores
             $overallScore = (int)$record['score'];
-            if ($overallScore >= 90) {
+            if ($overallScore >= 88) {
                 $scoreDistribution['excellent']++;
             } elseif ($overallScore >= 80) {
                 $scoreDistribution['good']++;
-            } elseif ($overallScore >= 70) {
+            } elseif ($overallScore > 60) {
                 $scoreDistribution['fair']++;
             } else {
                 $scoreDistribution['poor']++;

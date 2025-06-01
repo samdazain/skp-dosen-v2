@@ -385,11 +385,11 @@ class IntegrityModel extends Model
 
             // Distribute overall scores
             $overallScore = (int)$record['score'];
-            if ($overallScore >= 85) {
+            if ($overallScore >= 88) {
                 $scoreDistribution['excellent']++;
-            } elseif ($overallScore >= 75) {
+            } elseif ($overallScore > 75) {
                 $scoreDistribution['good']++;
-            } elseif ($overallScore >= 60) {
+            } elseif ($overallScore > 60) {
                 $scoreDistribution['fair']++;
             } else {
                 $scoreDistribution['poor']++;

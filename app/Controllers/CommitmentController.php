@@ -35,23 +35,26 @@ class CommitmentController extends BaseController
             return redirect()->to('dashboard')->with('error', 'Tidak ada semester aktif.');
         }
 
-        // Get lecturer count for debugging
-        $lecturerModel = new \App\Models\LecturerModel();
-        $totalLecturers = $lecturerModel->countAll();
-
         try {
-            // Auto-populate commitment data for all lecturers
+            // Auto-populate and recalculate scores (similar to DisciplineController)
             $addedCount = $this->commitmentModel->autoPopulateCommitmentData($currentSemester['id']);
+            $updatedCount = $this->commitmentModel->recalculateAllScores($currentSemester['id']);
 
-            // Refresh commitment data (sync and recalculate)
-            $this->commitmentModel->refreshCommitmentData($currentSemester['id']);
+            // Log the automatic calculation
+            if ($updatedCount > 0) {
+                log_message('info', "Commitment auto-calculation: Updated {$updatedCount} scores for semester {$currentSemester['id']}");
+            }
 
             if ($addedCount > 0) {
                 session()->setFlashdata('info', "Auto-populated {$addedCount} new commitment records");
             }
+
+            if ($updatedCount > 0) {
+                session()->setFlashdata('success', "Auto-recalculated {$updatedCount} commitment scores");
+            }
         } catch (\Exception $e) {
-            log_message('error', 'Exception during commitment data auto-population: ' . $e->getMessage());
-            session()->setFlashdata('warning', 'Terjadi masalah saat memuat data komitmen secara otomatis: ' . $e->getMessage());
+            log_message('error', 'Exception during commitment data auto-calculation: ' . $e->getMessage());
+            session()->setFlashdata('warning', 'Terjadi masalah saat menghitung ulang skor komitmen secara otomatis: ' . $e->getMessage());
         }
 
         $filters = array_filter([
@@ -81,6 +84,7 @@ class CommitmentController extends BaseController
                 'filters' => $filters,
                 'autoPopulationResult' => [
                     'added' => $addedCount ?? 0,
+                    'updated' => $updatedCount ?? 0,
                     'timestamp' => date('Y-m-d H:i:s')
                 ]
             ]);
@@ -104,7 +108,7 @@ class CommitmentController extends BaseController
                 'currentSemester' => $currentSemester,
                 'semesters' => $this->semesterModel->getAllSemesters(),
                 'filters' => $filters,
-                'autoPopulationResult' => ['added' => 0]
+                'autoPopulationResult' => ['added' => 0, 'updated' => 0]
             ]);
         }
     }
@@ -153,32 +157,39 @@ class CommitmentController extends BaseController
                 session()->get('user_id')
             );
 
+            if (!$result) {
+                throw new \Exception('Failed to update competency status');
+            }
+
             // Get the updated record to return the new score
             $updatedRecord = $this->commitmentModel->where([
                 'lecturer_id' => $lecturerId,
                 'semester_id' => $currentSemester['id']
             ])->first();
 
-            $newScore = $updatedRecord ? $updatedRecord['score'] : 0;
+            if (!$updatedRecord) {
+                throw new \Exception('Failed to retrieve updated record');
+            }
+
+            $newScore = $updatedRecord['score'];
 
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
-                    'success' => $result,
-                    'message' => $result ? 'Status kompetensi berhasil diperbarui' : 'Gagal memperbarui status kompetensi',
+                    'success' => true,
+                    'message' => 'Status kompetensi berhasil diperbarui',
                     'new_score' => $newScore,
                     'competence' => $competenceStatus
                 ]);
             }
 
-            return redirect()->to('commitment')->with(
-                $result ? 'success' : 'error',
-                $result ? 'Status kompetensi berhasil diperbarui' : 'Gagal memperbarui status kompetensi'
-            );
+            return redirect()->to('commitment')->with('success', 'Status kompetensi berhasil diperbarui');
         } catch (\Exception $e) {
+            log_message('error', 'Error updating competency: ' . $e->getMessage());
+
             if ($this->request->isAJAX()) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Kesalahan: ' . $e->getMessage()]);
+                return $this->response->setJSON(['success' => false, 'message' => 'Kesalahan sistem: ' . $e->getMessage()]);
             }
-            return redirect()->to('commitment')->with('error', 'Kesalahan: ' . $e->getMessage());
+            return redirect()->to('commitment')->with('error', 'Kesalahan sistem: ' . $e->getMessage());
         }
     }
 
@@ -226,32 +237,39 @@ class CommitmentController extends BaseController
                 session()->get('user_id')
             );
 
+            if (!$result) {
+                throw new \Exception('Failed to update Tri Dharma status');
+            }
+
             // Get the updated record to return the new score
             $updatedRecord = $this->commitmentModel->where([
                 'lecturer_id' => $lecturerId,
                 'semester_id' => $currentSemester['id']
             ])->first();
 
-            $newScore = $updatedRecord ? $updatedRecord['score'] : 0;
+            if (!$updatedRecord) {
+                throw new \Exception('Failed to retrieve updated record');
+            }
+
+            $newScore = $updatedRecord['score'];
 
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
-                    'success' => $result,
-                    'message' => $result ? 'Status Tri Dharma berhasil diperbarui' : 'Gagal memperbarui status Tri Dharma',
+                    'success' => true,
+                    'message' => 'Status Tri Dharma berhasil diperbarui',
                     'new_score' => $newScore,
                     'tridharma_pass' => $triDharmaStatus
                 ]);
             }
 
-            return redirect()->to('commitment')->with(
-                $result ? 'success' : 'error',
-                $result ? 'Status Tri Dharma berhasil diperbarui' : 'Gagal memperbarui status Tri Dharma'
-            );
+            return redirect()->to('commitment')->with('success', 'Status Tri Dharma berhasil diperbarui');
         } catch (\Exception $e) {
+            log_message('error', 'Error updating Tri Dharma: ' . $e->getMessage());
+
             if ($this->request->isAJAX()) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Kesalahan: ' . $e->getMessage()]);
+                return $this->response->setJSON(['success' => false, 'message' => 'Kesalahan sistem: ' . $e->getMessage()]);
             }
-            return redirect()->to('commitment')->with('error', 'Kesalahan: ' . $e->getMessage());
+            return redirect()->to('commitment')->with('error', 'Kesalahan sistem: ' . $e->getMessage());
         }
     }
 
@@ -352,5 +370,31 @@ class CommitmentController extends BaseController
             'success' => $successCount > 0,
             'message' => "Updated: {$successCount}, Errors: {$errorCount}"
         ]);
+    }
+
+    /**
+     * Manually recalculate commitment scores (admin function)
+     */
+    public function recalculateScores()
+    {
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        try {
+            $currentSemester = $this->semesterModel->getCurrentSemester();
+            $semesterId = $currentSemester ? $currentSemester['id'] : null;
+
+            if (!$semesterId) {
+                return redirect()->to('commitment')->with('error', 'Tidak ada semester aktif');
+            }
+
+            $updatedCount = $this->commitmentModel->recalculateAllScores($semesterId);
+
+            return redirect()->to('commitment')->with('success', "Berhasil memperbarui {$updatedCount} nilai komitmen secara manual");
+        } catch (\Exception $e) {
+            log_message('error', 'Error manually recalculating commitment scores: ' . $e->getMessage());
+            return redirect()->to('commitment')->with('error', 'Gagal memperbarui nilai komitmen secara manual: ' . $e->getMessage());
+        }
     }
 }

@@ -8,6 +8,10 @@ class ScoreModel extends Model
 {
     protected $table = 'score_settings';
     protected $primaryKey = 'id';
+    protected $useAutoIncrement = true;
+    protected $returnType = 'array';
+    protected $useSoftDeletes = false;
+    protected $protectFields = true;
     protected $allowedFields = [
         'category',
         'subcategory',
@@ -16,125 +20,230 @@ class ScoreModel extends Model
         'range_end',
         'range_label',
         'score',
-        'editable',
-        'created_at',
-        'updated_at'
+        'editable'
     ];
+
     protected $useTimestamps = true;
+    protected $createdField = 'created_at';
+    protected $updatedField = 'updated_at';
 
     /**
-     * Get all score ranges organized by category and subcategory
+     * Get all score ranges organized by category
      */
     public function getAllScoreRanges()
     {
-        $ranges = $this->orderBy('category')
-            ->orderBy('subcategory')
-            ->orderBy('score', 'DESC')
-            ->findAll();
+        try {
+            $ranges = $this->orderBy('category', 'ASC')
+                ->orderBy('subcategory', 'ASC')
+                ->orderBy('score', 'DESC')
+                ->findAll();
 
-        return $this->organizeRangesByCategory($ranges);
+            // Ensure we always return an array, even if empty
+            return is_array($ranges) ? $ranges : [];
+        } catch (\Exception $e) {
+            log_message('error', 'Error getting score ranges: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**
-     * Get score ranges for a specific category
+     * Get ranges by specific category
      */
     public function getRangesByCategory($category)
     {
-        return $this->where('category', $category)
-            ->orderBy('subcategory')
-            ->orderBy('score', 'DESC')
-            ->findAll();
+        try {
+            return $this->where('category', $category)
+                ->orderBy('subcategory', 'ASC')
+                ->orderBy('score', 'DESC')
+                ->findAll();
+        } catch (\Exception $e) {
+            log_message('error', "Error getting ranges for category {$category}: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**
-     * Get score ranges for a specific subcategory
+     * Get ranges by category and subcategory
      */
     public function getRangesBySubcategory($category, $subcategory)
     {
-        return $this->where('category', $category)
-            ->where('subcategory', $subcategory)
-            ->orderBy('score', 'DESC')
-            ->findAll();
+        try {
+            return $this->where('category', $category)
+                ->where('subcategory', $subcategory)
+                ->orderBy('score', 'DESC')
+                ->findAll();
+        } catch (\Exception $e) {
+            log_message('error', "Error getting ranges for {$category}/{$subcategory}: " . $e->getMessage());
+            return [];
+        }
     }
 
     /**
-     * Calculate score based on value and category/subcategory
+     * Calculate score for given category, subcategory and value
      */
     public function calculateScore($category, $subcategory, $value)
     {
-        // Handle commitment category specifically
-        if ($category === 'commitment') {
-            return $this->calculateCommitmentScore($subcategory, $value);
+        try {
+            return $this->getScoreForValue($category, $subcategory, $value);
+        } catch (\Exception $e) {
+            log_message('error', "Error calculating score for {$category}/{$subcategory}/{$value}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Get score for a specific value in a category/subcategory
+     * Enhanced to handle different range types properly
+     */
+    public function getScoreForValue($category, $subcategory, $value)
+    {
+        try {
+            // Get all ranges for this category/subcategory
+            $ranges = $this->where('category', $category)
+                ->where('subcategory', $subcategory)
+                ->orderBy('score', 'DESC') // Order by score descending for consistent results
+                ->findAll();
+
+            if (empty($ranges)) {
+                log_message('warning', "No score ranges found for {$category}/{$subcategory}");
+                throw new \Exception("No score ranges found for {$category}/{$subcategory}");
+            }
+
+            // Log the search attempt
+            log_message('debug', "Searching score for {$category}/{$subcategory} with value: '{$value}'");
+            log_message('debug', "Available ranges: " . json_encode($ranges));
+
+            foreach ($ranges as $range) {
+                $match = false;
+
+                switch ($range['range_type']) {
+                    case 'boolean':
+                    case 'fixed':
+                        // For boolean and fixed types, match against range_label
+                        $match = $this->matchLabelValue($value, $range['range_label']);
+                        log_message('debug', "Checking {$range['range_type']} match: '{$value}' vs '{$range['range_label']}' = " . ($match ? 'true' : 'false'));
+                        break;
+
+                    case 'exact':
+                        // For exact matches, compare with range_start
+                        $match = ($value == $range['range_start']);
+                        break;
+
+                    case 'range':
+                        // For ranges, check if value falls within range_start and range_end
+                        $numericValue = is_numeric($value) ? (float)$value : $value;
+                        $match = ($numericValue >= $range['range_start'] && $numericValue <= $range['range_end']);
+                        break;
+
+                    case 'above':
+                        // For above type, check if value is greater than range_start
+                        $numericValue = is_numeric($value) ? (float)$value : $value;
+                        $match = ($numericValue > $range['range_start']);
+                        break;
+
+                    case 'below':
+                        // For below type, check if value is less than range_start
+                        $numericValue = is_numeric($value) ? (float)$value : $value;
+                        $match = ($numericValue < $range['range_start']);
+                        break;
+                }
+
+                if ($match) {
+                    log_message('debug', "Found matching range for {$category}/{$subcategory}/{$value}: score = {$range['score']}");
+                    return (int)$range['score'];
+                }
+            }
+
+            // If no match found, throw exception
+            throw new \Exception("No matching score range found for {$category}/{$subcategory} with value: {$value}");
+        } catch (\Exception $e) {
+            log_message('error', "Error getting score for {$category}/{$subcategory}/{$value}: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Match label values with special handling for different formats
+     * Handles mappings between database values and display labels
+     */
+    private function matchLabelValue($inputValue, $rangeLabel)
+    {
+        // Normalize both values for comparison
+        $normalizedInput = strtolower(trim((string)$inputValue));
+        $normalizedLabel = strtolower(trim((string)$rangeLabel));
+
+        // Direct match first
+        if ($normalizedInput === $normalizedLabel) {
+            return true;
         }
 
-        $ranges = $this->getRangesBySubcategory($category, $subcategory);
+        // Special mappings for commitment category
+        $commitmentMappings = [
+            'active' => ['ada', 'aktif', 'active'],
+            'inactive' => ['tidak', 'tidak ada', 'inactive'],
+            'pass' => ['lulus', 'pass'],
+            'fail' => ['tidak lulus', 'fail', 'gagal'],
+            '1' => ['lulus', 'pass', 'ada', 'aktif'],
+            '0' => ['tidak lulus', 'fail', 'tidak', 'tidak ada'],
+            'true' => ['lulus', 'pass', 'ada', 'aktif'],
+            'false' => ['tidak lulus', 'fail', 'tidak', 'tidak ada']
+        ];
 
-        foreach ($ranges as $range) {
-            if ($this->valueInRange($value, $range)) {
-                return (int)$range['score'];
+        // Special mappings for cooperation category
+        $cooperationMappings = [
+            'not_cooperative' => ['tidak kooperatif', 'not cooperative'],
+            'fair' => ['cukup kooperatif', 'fair'],
+            'cooperative' => ['kooperatif', 'cooperative'],
+            'very_cooperative' => ['sangat kooperatif', 'very cooperative']
+        ];
+
+        // Check commitment mappings
+        if (isset($commitmentMappings[$normalizedInput])) {
+            foreach ($commitmentMappings[$normalizedInput] as $mapping) {
+                if ($normalizedLabel === $mapping) {
+                    return true;
+                }
             }
         }
 
-        return 0; // Default score if no range matches
-    }
-
-    /**
-     * Calculate commitment-specific scores
-     */
-    private function calculateCommitmentScore($subcategory, $value)
-    {
-        switch ($subcategory) {
-            case 'competency':
-                // Handle competency scoring
-                if ($value === 'active' || $value === true || $value === 1 || $value === '1') {
-                    return 88; // Active competency score
-                } else {
-                    return 70; // Inactive competency score
+        // Check cooperation mappings
+        if (isset($cooperationMappings[$normalizedInput])) {
+            foreach ($cooperationMappings[$normalizedInput] as $mapping) {
+                if ($normalizedLabel === $mapping) {
+                    return true;
                 }
-
-            case 'tri_dharma':
-                // Handle tri dharma scoring
-                if ($value === 'pass' || $value === true || $value === 1 || $value === '1') {
-                    return 88; // Pass tri dharma score
-                } else {
-                    return 70; // Fail tri dharma score
-                }
-
-            default:
-                return 0;
-        }
-    }
-
-    /**
-     * Check if a value falls within a specific range
-     */
-    private function valueInRange($value, $range)
-    {
-        // Convert value to appropriate type based on category
-        if (in_array($range['category'], ['integrity', 'discipline'])) {
-            $value = (int)$value; // Force integer for integrity and discipline
-        } else {
-            $value = is_numeric($value) ? (float)$value : $value;
+            }
         }
 
-        switch ($range['range_type']) {
-            case 'range':
-                return $value >= $range['range_start'] && $value <= $range['range_end'];
-            case 'above':
-                return $value > $range['range_start'];
-            case 'below':
-                return $value < $range['range_start'];
-            case 'exact':
-                return $value == $range['range_start'];
-            case 'boolean':
-                $boolValue = ($value === true || $value === 'true' || $value === 1 || $value === '1');
-                $rangeValue = ($range['range_label'] === 'true' || $range['range_label'] === '1');
-                return $boolValue === $rangeValue;
-            case 'fixed':
-                return $value === $range['range_label'];
-            default:
-                return false;
+        // Reverse check - if range label maps to input value
+        foreach ($commitmentMappings as $key => $mappings) {
+            if (in_array($normalizedLabel, $mappings) && $normalizedInput === $key) {
+                return true;
+            }
         }
+
+        foreach ($cooperationMappings as $key => $mappings) {
+            if (in_array($normalizedLabel, $mappings) && $normalizedInput === $key) {
+                return true;
+            }
+        }
+
+        // Boolean value conversions
+        if (
+            in_array($normalizedInput, ['1', 'true', 'yes', 'ya']) &&
+            in_array($normalizedLabel, ['ada', 'aktif', 'lulus', 'pass'])
+        ) {
+            return true;
+        }
+
+        if (
+            in_array($normalizedInput, ['0', 'false', 'no', 'tidak']) &&
+            in_array($normalizedLabel, ['tidak', 'tidak ada', 'tidak lulus', 'fail'])
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -142,18 +251,12 @@ class ScoreModel extends Model
      */
     public function addRange($data)
     {
-        $insertData = [
-            'category' => $data['category'],
-            'subcategory' => $data['subcategory'],
-            'range_type' => $data['range_type'],
-            'range_start' => $data['range_start'] ?? null,
-            'range_end' => $data['range_end'] ?? null,
-            'range_label' => $data['range_label'] ?? null,
-            'score' => (int)$data['score'],
-            'editable' => $data['editable'] ?? true
-        ];
-
-        return $this->insert($insertData);
+        try {
+            return $this->insert($data);
+        } catch (\Exception $e) {
+            log_message('error', 'Error adding score range: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
@@ -161,12 +264,12 @@ class ScoreModel extends Model
      */
     public function updateRange($id, $data)
     {
-        // Ensure score is always integer
-        if (isset($data['score'])) {
-            $data['score'] = (int)$data['score'];
+        try {
+            return $this->update($id, $data);
+        } catch (\Exception $e) {
+            log_message('error', "Error updating score range {$id}: " . $e->getMessage());
+            throw $e;
         }
-
-        return $this->update($id, $data);
     }
 
     /**
@@ -174,133 +277,178 @@ class ScoreModel extends Model
      */
     public function deleteRange($id)
     {
-        return $this->delete($id);
+        try {
+            return $this->delete($id);
+        } catch (\Exception $e) {
+            log_message('error', "Error deleting score range {$id}: " . $e->getMessage());
+            throw $e;
+        }
     }
 
     /**
-     * Initialize default score ranges based on the provided conventions
+     * Initialize default score ranges if none exist
      */
     public function initializeDefaultRanges()
     {
-        $defaultRanges = [
-            // Commitment ranges
-            [
-                'category' => 'commitment',
-                'subcategory' => 'competency',
-                'range_type' => 'boolean',
-                'range_start' => null,
-                'range_end' => null,
-                'range_label' => 'active',
-                'score' => 88,
-                'editable' => true
-            ],
-            [
-                'category' => 'commitment',
-                'subcategory' => 'competency',
-                'range_type' => 'boolean',
-                'range_start' => null,
-                'range_end' => null,
-                'range_label' => 'inactive',
-                'score' => 70,
-                'editable' => true
-            ],
-            [
-                'category' => 'commitment',
-                'subcategory' => 'tri_dharma',
-                'range_type' => 'boolean',
-                'range_start' => null,
-                'range_end' => null,
-                'range_label' => 'pass',
-                'score' => 88,
-                'editable' => true
-            ],
-            [
-                'category' => 'commitment',
-                'subcategory' => 'tri_dharma',
-                'range_type' => 'boolean',
-                'range_start' => null,
-                'range_end' => null,
-                'range_label' => 'fail',
-                'score' => 70,
-                'editable' => true
-            ]
-        ];
+        if ($this->hasDefaultRanges()) {
+            return false; // Already initialized
+        }
 
-        foreach ($defaultRanges as $range) {
-            // Check if range already exists
-            $existing = $this->where('category', $range['category'])
-                ->where('subcategory', $range['subcategory'])
-                ->where('range_label', $range['range_label'])
-                ->first();
+        try {
+            $this->db->transStart();
 
-            if (!$existing) {
-                $this->insert($range);
+            // Initialize default ranges for each category
+            $this->initializeIntegrityRanges();
+            $this->initializeDisciplineRanges();
+            $this->initializeCommitmentRanges();
+            $this->initializeCooperationRanges();
+            $this->initializeOrientationRanges();
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Transaction failed during initialization');
             }
+
+            log_message('info', 'Successfully initialized default score ranges');
+            return true;
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            log_message('error', 'Error initializing default ranges: ' . $e->getMessage());
+            throw $e;
         }
-
-        return true;
     }
 
     /**
-     * Get score for a specific value dynamically from database
-     */
-    public function getScoreForValue($category, $subcategory, $value)
-    {
-        return $this->calculateScore($category, $subcategory, $value);
-    }
-
-    /**
-     * Get all scores for a category/subcategory as options
-     */
-    public function getScoreOptions($category, $subcategory)
-    {
-        $ranges = $this->getRangesBySubcategory($category, $subcategory);
-        $options = [];
-
-        foreach ($ranges as $range) {
-            $label = $range['range_label'] ?: ($range['range_type'] === 'range' ?
-                    "{$range['range_start']}-{$range['range_end']}" :
-                    $range['range_start']);
-
-            $options[$range['id']] = [
-                'label' => $label,
-                'score' => $range['score']
-            ];
-        }
-
-        return $options;
-    }
-
-    /**
-     * Organize ranges by category for view display
-     */
-    private function organizeRangesByCategory($ranges)
-    {
-        $organized = [
-            'integrity' => [],
-            'discipline' => [],
-            'commitment' => [],
-            'cooperation' => [],
-            'service_orientation' => []
-        ];
-
-        foreach ($ranges as $range) {
-            if (isset($organized[$range['category']])) {
-                if (!isset($organized[$range['category']][$range['subcategory']])) {
-                    $organized[$range['category']][$range['subcategory']] = [];
-                }
-                $organized[$range['category']][$range['subcategory']][] = $range;
-            }
-        }
-
-        return $organized;
-    }
-
-    /**
-     * Check if default ranges exist
+     * Check if default ranges already exist
      */
     public function hasDefaultRanges()
     {
-        return $this->countAll() > 0;
+        $count = $this->countAll();
+        return $count > 0;
+    }
+
+    /**
+     * Initialize integrity score ranges
+     */
+    private function initializeIntegrityRanges()
+    {
+        $integrityRanges = [
+            // Teaching attendance subcategory
+            ['category' => 'integrity', 'subcategory' => 'teaching_attendance', 'range_type' => 'range', 'range_start' => 0, 'range_end' => 50, 'range_label' => null, 'score' => 60, 'editable' => true],
+            ['category' => 'integrity', 'subcategory' => 'teaching_attendance', 'range_type' => 'range', 'range_start' => 51, 'range_end' => 75, 'range_label' => null, 'score' => 70, 'editable' => true],
+            ['category' => 'integrity', 'subcategory' => 'teaching_attendance', 'range_type' => 'range', 'range_start' => 76, 'range_end' => 90, 'range_label' => null, 'score' => 80, 'editable' => true],
+            ['category' => 'integrity', 'subcategory' => 'teaching_attendance', 'range_type' => 'range', 'range_start' => 91, 'range_end' => 100, 'range_label' => null, 'score' => 88, 'editable' => true],
+
+            // Courses taught subcategory
+            ['category' => 'integrity', 'subcategory' => 'courses_taught', 'range_type' => 'exact', 'range_start' => 0, 'range_end' => null, 'range_label' => null, 'score' => 60, 'editable' => true],
+            ['category' => 'integrity', 'subcategory' => 'courses_taught', 'range_type' => 'exact', 'range_start' => 1, 'range_end' => null, 'range_label' => null, 'score' => 70, 'editable' => true],
+            ['category' => 'integrity', 'subcategory' => 'courses_taught', 'range_type' => 'exact', 'range_start' => 2, 'range_end' => null, 'range_label' => null, 'score' => 80, 'editable' => true],
+            ['category' => 'integrity', 'subcategory' => 'courses_taught', 'range_type' => 'above', 'range_start' => 2, 'range_end' => null, 'range_label' => null, 'score' => 88, 'editable' => true]
+        ];
+
+        $this->insertBatch($integrityRanges);
+    }
+
+    /**
+     * Initialize discipline score ranges
+     */
+    private function initializeDisciplineRanges()
+    {
+        $disciplineRanges = [
+            // Daily attendance
+            ['category' => 'discipline', 'subcategory' => 'daily_attendance', 'range_type' => 'exact', 'range_start' => 0, 'range_end' => null, 'range_label' => null, 'score' => 88, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'daily_attendance', 'range_type' => 'range', 'range_start' => 1, 'range_end' => 2, 'range_label' => null, 'score' => 80, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'daily_attendance', 'range_type' => 'range', 'range_start' => 3, 'range_end' => 4, 'range_label' => null, 'score' => 70, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'daily_attendance', 'range_type' => 'above', 'range_start' => 4, 'range_end' => null, 'range_label' => null, 'score' => 60, 'editable' => true],
+
+            // Morning exercise
+            ['category' => 'discipline', 'subcategory' => 'morning_exercise', 'range_type' => 'exact', 'range_start' => 0, 'range_end' => null, 'range_label' => null, 'score' => 88, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'morning_exercise', 'range_type' => 'range', 'range_start' => 1, 'range_end' => 2, 'range_label' => null, 'score' => 80, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'morning_exercise', 'range_type' => 'range', 'range_start' => 3, 'range_end' => 4, 'range_label' => null, 'score' => 70, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'morning_exercise', 'range_type' => 'above', 'range_start' => 4, 'range_end' => null, 'range_label' => null, 'score' => 60, 'editable' => true],
+
+            // Ceremony attendance
+            ['category' => 'discipline', 'subcategory' => 'ceremony_attendance', 'range_type' => 'exact', 'range_start' => 0, 'range_end' => null, 'range_label' => null, 'score' => 88, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'ceremony_attendance', 'range_type' => 'range', 'range_start' => 1, 'range_end' => 2, 'range_label' => null, 'score' => 80, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'ceremony_attendance', 'range_type' => 'range', 'range_start' => 3, 'range_end' => 4, 'range_label' => null, 'score' => 70, 'editable' => true],
+            ['category' => 'discipline', 'subcategory' => 'ceremony_attendance', 'range_type' => 'above', 'range_start' => 4, 'range_end' => null, 'range_label' => null, 'score' => 60, 'editable' => true]
+        ];
+
+        $this->insertBatch($disciplineRanges);
+    }
+
+    /**
+     * Initialize commitment score ranges
+     */
+    private function initializeCommitmentRanges()
+    {
+        $commitmentRanges = [
+            // Competency subcategory
+            ['category' => 'commitment', 'subcategory' => 'competency', 'range_type' => 'boolean', 'range_start' => null, 'range_end' => null, 'range_label' => 'Ada', 'score' => 88, 'editable' => true],
+            ['category' => 'commitment', 'subcategory' => 'competency', 'range_type' => 'boolean', 'range_start' => null, 'range_end' => null, 'range_label' => 'Tidak', 'score' => 70, 'editable' => true],
+
+            // Tri Dharma subcategory
+            ['category' => 'commitment', 'subcategory' => 'tri_dharma', 'range_type' => 'boolean', 'range_start' => null, 'range_end' => null, 'range_label' => 'Lulus', 'score' => 88, 'editable' => true],
+            ['category' => 'commitment', 'subcategory' => 'tri_dharma', 'range_type' => 'boolean', 'range_start' => null, 'range_end' => null, 'range_label' => 'Tidak Lulus', 'score' => 70, 'editable' => true]
+        ];
+
+        $this->insertBatch($commitmentRanges);
+    }
+
+    /**
+     * Initialize cooperation score ranges
+     */
+    private function initializeCooperationRanges()
+    {
+        $cooperationRanges = [
+            ['category' => 'cooperation', 'subcategory' => 'cooperation_level', 'range_type' => 'fixed', 'range_start' => null, 'range_end' => null, 'range_label' => 'Tidak Kooperatif', 'score' => 60, 'editable' => true],
+            ['category' => 'cooperation', 'subcategory' => 'cooperation_level', 'range_type' => 'fixed', 'range_start' => null, 'range_end' => null, 'range_label' => 'Cukup Kooperatif', 'score' => 75, 'editable' => true],
+            ['category' => 'cooperation', 'subcategory' => 'cooperation_level', 'range_type' => 'fixed', 'range_start' => null, 'range_end' => null, 'range_label' => 'Kooperatif', 'score' => 80, 'editable' => true],
+            ['category' => 'cooperation', 'subcategory' => 'cooperation_level', 'range_type' => 'fixed', 'range_start' => null, 'range_end' => null, 'range_label' => 'Sangat Kooperatif', 'score' => 88, 'editable' => true]
+        ];
+
+        $this->insertBatch($cooperationRanges);
+    }
+
+    /**
+     * Initialize orientation score ranges
+     */
+    private function initializeOrientationRanges()
+    {
+        $orientationRanges = [
+            ['category' => 'orientation', 'subcategory' => 'service_quality', 'range_type' => 'range', 'range_start' => 1.0, 'range_end' => 2.0, 'range_label' => null, 'score' => 60, 'editable' => true],
+            ['category' => 'orientation', 'subcategory' => 'service_quality', 'range_type' => 'range', 'range_start' => 2.1, 'range_end' => 3.0, 'range_label' => null, 'score' => 70, 'editable' => true],
+            ['category' => 'orientation', 'subcategory' => 'service_quality', 'range_type' => 'range', 'range_start' => 3.1, 'range_end' => 4.0, 'range_label' => null, 'score' => 80, 'editable' => true],
+            ['category' => 'orientation', 'subcategory' => 'service_quality', 'range_type' => 'range', 'range_start' => 4.1, 'range_end' => 5.0, 'range_label' => null, 'score' => 88, 'editable' => true]
+        ];
+
+        $this->insertBatch($orientationRanges);
+    }
+
+    /**
+     * Get score options for a specific category/subcategory (for form display)
+     */
+    public function getScoreOptions($category, $subcategory)
+    {
+        try {
+            $ranges = $this->getRangesBySubcategory($category, $subcategory);
+            $options = [];
+
+            foreach ($ranges as $range) {
+                if ($range['range_type'] === 'boolean' || $range['range_type'] === 'fixed') {
+                    $options[] = [
+                        'value' => $range['range_label'],
+                        'label' => $range['range_label'],
+                        'score' => $range['score']
+                    ];
+                }
+            }
+
+            return $options;
+        } catch (\Exception $e) {
+            log_message('error', "Error getting score options for {$category}/{$subcategory}: " . $e->getMessage());
+            return [];
+        }
     }
 }
