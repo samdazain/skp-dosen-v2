@@ -62,11 +62,11 @@
                     break;
 
                 case 'below':
-                    rangeStartGroup.style.display = 'none';
-                    rangeEndGroup.style.display = 'block';
+                    rangeStartGroup.style.display = 'block';
+                    rangeEndGroup.style.display = 'none';
                     labelGroup.style.display = 'none';
-                    rangeEnd.setAttribute('required', 'required');
-                    rangeEnd.placeholder = useIntegers ? 'Contoh: 5' : 'Contoh: 2.5';
+                    rangeStart.setAttribute('required', 'required');
+                    rangeStart.placeholder = useIntegers ? 'Contoh: 5' : 'Contoh: 2.5';
                     break;
 
                 case 'exact':
@@ -340,7 +340,8 @@
                 document.querySelector('#addRangeModal .modal-body').appendChild(helpElement);
             }
 
-            helpElement.innerHTML = `<small><i class="fas fa-lightbulb"></i> <strong>Tips:</strong> ${helpText}</small>`;
+            helpElement.innerHTML =
+                `<small><i class="fas fa-lightbulb"></i> <strong>Tips:</strong> ${helpText}</small>`;
         }
 
         // Initialize enhancements

@@ -52,12 +52,9 @@
                         <td>
                             <div class="input-group">
                                 <input type="number" class="form-control text-center score-input"
-                                    name="ranges[<?= $range['id'] ?? '' ?>][score]"
-                                    value="<?= (int)($range['score'] ?? 0) ?>"
-                                    required min="0" max="100" step="1"
-                                    data-range-id="<?= $range['id'] ?? '' ?>"
-                                    data-category="<?= $category ?>"
-                                    data-subcategory="<?= $subcategory ?>"
+                                    name="ranges[<?= $range['id'] ?? '' ?>][score]" value="<?= (int)($range['score'] ?? 0) ?>"
+                                    required min="0" max="100" step="1" data-range-id="<?= $range['id'] ?? '' ?>"
+                                    data-category="<?= $category ?>" data-subcategory="<?= $subcategory ?>"
                                     <?= isset($range['editable']) && !$range['editable'] ? 'readonly' : '' ?>>
                                 <div class="input-group-append">
                                     <span class="input-group-text">pts</span>
@@ -90,9 +87,7 @@
                             <?php $isEditable = !isset($range['editable']) || $range['editable']; ?>
                             <?php if ($isEditable): ?>
                                 <button type="button" class="btn btn-sm btn-outline-danger delete-range"
-                                    data-range-id="<?= $range['id'] ?? '' ?>"
-                                    data-toggle="modal"
-                                    data-target="#deleteRangeModal"
+                                    data-range-id="<?= $range['id'] ?? '' ?>" data-toggle="modal" data-target="#deleteRangeModal"
                                     title="Hapus rentang nilai">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>
@@ -112,11 +107,8 @@
                         <br>
                         Belum ada rentang nilai untuk <?= esc($subcategoryTitle ?? 'kategori ini') ?>
                         <br>
-                        <button type="button" class="btn btn-primary btn-sm mt-2 add-range"
-                            data-category="<?= $category ?>"
-                            data-subcategory="<?= $subcategory ?>"
-                            data-toggle="modal"
-                            data-target="#addRangeModal">
+                        <button type="button" class="btn btn-primary btn-sm mt-2 add-range" data-category="<?= $category ?>"
+                            data-subcategory="<?= $subcategory ?>" data-toggle="modal" data-target="#addRangeModal">
                             <i class="fas fa-plus mr-1"></i>
                             Tambah Rentang Nilai
                         </button>
@@ -128,11 +120,8 @@
 
     <?php if (!empty($ranges)): ?>
         <div class="mt-2">
-            <button type="button" class="btn btn-outline-primary btn-sm add-range"
-                data-category="<?= $category ?>"
-                data-subcategory="<?= $subcategory ?>"
-                data-toggle="modal"
-                data-target="#addRangeModal">
+            <button type="button" class="btn btn-outline-primary btn-sm add-range" data-category="<?= $category ?>"
+                data-subcategory="<?= $subcategory ?>" data-toggle="modal" data-target="#addRangeModal">
                 <i class="fas fa-plus mr-1"></i>
                 Tambah Rentang Nilai
             </button>

@@ -417,10 +417,10 @@ class ScoreModel extends Model
     private function initializeOrientationRanges()
     {
         $orientationRanges = [
-            ['category' => 'orientation', 'subcategory' => 'service_quality', 'range_type' => 'range', 'range_start' => 1.0, 'range_end' => 2.0, 'range_label' => null, 'score' => 60, 'editable' => true],
-            ['category' => 'orientation', 'subcategory' => 'service_quality', 'range_type' => 'range', 'range_start' => 2.1, 'range_end' => 3.0, 'range_label' => null, 'score' => 70, 'editable' => true],
-            ['category' => 'orientation', 'subcategory' => 'service_quality', 'range_type' => 'range', 'range_start' => 3.1, 'range_end' => 4.0, 'range_label' => null, 'score' => 80, 'editable' => true],
-            ['category' => 'orientation', 'subcategory' => 'service_quality', 'range_type' => 'range', 'range_start' => 4.1, 'range_end' => 5.0, 'range_label' => null, 'score' => 88, 'editable' => true]
+            ['category' => 'orientation', 'subcategory' => 'teaching_questionnaire', 'range_type' => 'range', 'range_start' => 1.0, 'range_end' => 2.0, 'range_label' => null, 'score' => 60, 'editable' => true],
+            ['category' => 'orientation', 'subcategory' => 'teaching_questionnaire', 'range_type' => 'range', 'range_start' => 2.1, 'range_end' => 3.0, 'range_label' => null, 'score' => 70, 'editable' => true],
+            ['category' => 'orientation', 'subcategory' => 'teaching_questionnaire', 'range_type' => 'range', 'range_start' => 3.1, 'range_end' => 4.0, 'range_label' => null, 'score' => 80, 'editable' => true],
+            ['category' => 'orientation', 'subcategory' => 'teaching_questionnaire', 'range_type' => 'range', 'range_start' => 4.1, 'range_end' => 5.0, 'range_label' => null, 'score' => 88, 'editable' => true]
         ];
 
         $this->insertBatch($orientationRanges);
