@@ -61,7 +61,7 @@ $inputType = 'number';
                     <i class="fas fa-less-than text-danger"></i>
                 </span>
             </div>
-            <input type="<?= $inputType ?>" class="form-control" name="ranges[<?= $rangeId ?>][end]" value="<?= $rangeEnd ?>"
+            <input type="<?= $inputType ?>" class="form-control" name="ranges[<?= $rangeId ?>][end]" value="<?= $rangeStart ?>"
                 step="<?= $stepValue ?>" min="0" placeholder="Nilai maksimum" required>
             <input type="hidden" name="ranges[<?= $rangeId ?>][start]" value="">
 
