@@ -19,8 +19,13 @@ class AuthController extends BaseController
 
     public function index()
     {
-        if ($this->session->has('isLoggedIn')) {
-            return redirect()->to('dashboard');
+        // Debug session status on login page
+        $isLoggedIn = $this->session->get('isLoggedIn');
+        log_message('info', 'Login page accessed. Session status: ' . ($isLoggedIn ? 'logged in' : 'not logged in'));
+
+        if ($isLoggedIn) {
+            log_message('info', 'User already logged in, redirecting to dashboard');
+            return redirect()->to('/dashboard');
         }
 
         return view('auth/login', [
@@ -30,9 +35,6 @@ class AuthController extends BaseController
 
     public function login()
     {
-        // Enhanced debugging for login process
-        log_message('info', 'Login attempt started');
-
         $validation = \Config\Services::validation();
         $validation->setRules([
             'nip' => 'required|trim',
@@ -40,79 +42,46 @@ class AuthController extends BaseController
         ]);
 
         if (!$validation->withRequest($this->request)->run()) {
-            log_message('warning', 'Login validation failed: ' . json_encode($validation->getErrors()));
             return redirect()->back()->withInput()->with('error', 'NIP dan password harus diisi');
         }
 
         $nip = trim($this->request->getPost('nip'));
         $password = $this->request->getPost('password');
 
-        log_message('info', "Login attempt for NIP: {$nip}");
+        $user = $this->userModel->findByNIP($nip);
 
-        // Check if UserModel exists and is working
-        if (!$this->userModel) {
-            log_message('error', 'UserModel not initialized');
-            return redirect()->back()->withInput()->with('error', 'Sistem error: Model tidak tersedia');
+        if (!$user) {
+            return redirect()->back()->withInput()->with('error', 'NIP tidak ditemukan');
         }
 
-        try {
-            $user = $this->userModel->findByNIP($nip);
-            log_message('info', 'User lookup result: ' . ($user ? 'found' : 'not found'));
-
-            if (!$user) {
-                log_message('warning', "NIP not found: {$nip}");
-                return redirect()->back()->withInput()->with('error', 'NIP tidak ditemukan');
-            }
-
-            // Debug user data (without password)
-            $userDebug = $user;
-            unset($userDebug['password']);
-            log_message('info', 'User data: ' . json_encode($userDebug));
-
-            // Verify password
-            $passwordVerified = $this->userModel->verifyPassword($password, $user['password']);
-            log_message('info', 'Password verification: ' . ($passwordVerified ? 'success' : 'failed'));
-
-            if (!$passwordVerified) {
-                log_message('warning', "Invalid password for NIP: {$nip}");
-                return redirect()->back()->withInput()->with('error', 'Password salah');
-            }
-
-            // Create session data
-            $sessionData = [
-                'user_id' => $user['id'] ?? null,
-                'user_nip' => $user['nip'] ?? '',
-                'user_name' => $user['name'] ?? 'User',
-                'user_role' => $user['role'] ?? 'staff',
-                'user_email' => $user['email'] ?? '',
-                'user_study_program' => $user['study_program'] ?? '',
-                'isLoggedIn' => true
-            ];
-
-            log_message('info', 'Setting session data: ' . json_encode($sessionData));
-
-            // Set session
-            $this->session->set($sessionData);
-
-            // Verify session was set
-            $sessionSet = $this->session->get('isLoggedIn');
-            log_message('info', 'Session verification after set: ' . ($sessionSet ? 'success' : 'failed'));
-
-            if (!$sessionSet) {
-                log_message('error', 'Failed to set session data');
-                return redirect()->back()->withInput()->with('error', 'Gagal membuat sesi login');
-            }
-
-            log_message('info', "Successful login for user: {$user['name']} (NIP: {$nip})");
-
-            // Redirect to dashboard
-            return redirect()->to('dashboard')->with('success', 'Login berhasil! Selamat datang ' . $user['name']);
-        } catch (\Exception $e) {
-            log_message('error', 'Login exception: ' . $e->getMessage());
-            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem saat login');
+        if (!$this->userModel->verifyPassword($password, $user['password'])) {
+            return redirect()->back()->withInput()->with('error', 'Password salah');
         }
+
+        // Regenerate session ID & set session
+        $this->session->regenerate();
+
+        $sessionData = [
+            'user_id' => $user['id'],
+            'user_nip' => $user['nip'],
+            'user_name' => $user['name'],
+            'user_role' => $user['role'],
+            'user_email' => $user['email'],
+            'user_study_program' => $user['study_program'],
+            'isLoggedIn' => true
+        ];
+
+        $this->session->set($sessionData);
+
+        // Debug log to verify session data
+        log_message('info', 'Login successful for user: ' . $user['name'] . ' with role: ' . $user['role']);
+        log_message('debug', 'Session data set: ' . json_encode($sessionData));
+
+        $this->session->setFlashdata('success', 'Login berhasil! Selamat datang ' . $user['name']);
+
+        return redirect()->to('/dashboard');
     }
+
 
     public function logout()
     {

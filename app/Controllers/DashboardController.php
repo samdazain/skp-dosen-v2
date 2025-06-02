@@ -28,9 +28,13 @@ class DashboardController extends BaseController
             'email' => session()->get('user_email'),
         ];
 
+        // Get lecturer statistics
+        $totalLecturers = $this->lecturerModel->countAll();
+
         return view('dashboard/index', [
             'pageTitle' => 'Dashboard | SKP Dosen',
-            'user' => $userData
+            'user' => $userData,
+            'totalLecturers' => $totalLecturers
         ]);
     }
 

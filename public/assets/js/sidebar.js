@@ -7,6 +7,14 @@ $(document).ready(function () {
     let hoverTimer = null;
     let isTransitioning = false;
 
+    // Restore sidebar state on page load
+    const savedSidebarState = localStorage.getItem('sidebarState');
+    const savedActiveNavItem = localStorage.getItem('activeNavItem');
+
+    if (savedSidebarState === 'expanded' && !isMobile()) {
+        $('body').removeClass('sidebar-collapse');
+    }
+
     // Set active class based on current URL
     const currentPath = window.location.pathname;
     let hasActiveLink = false;
@@ -109,9 +117,20 @@ $(document).ready(function () {
     // Enhanced nav link interactions
     $('.modern-nav-link').on('click', function (e) {
         const href = $(this).attr('href');
+        const isDisabled = $(this).hasClass('nav-disabled');
 
         // Don't prevent default for actual navigation
-        if (href && href !== '#') {
+        if (href && href !== '#' && !isDisabled) {
+            // Save sidebar state and active nav item
+            if (!isMobile() && !$('body').hasClass('sidebar-collapse')) {
+                localStorage.setItem('sidebarState', 'expanded');
+            } else {
+                localStorage.removeItem('sidebarState');
+            }
+
+            // Save the href of clicked nav item for focus restoration
+            localStorage.setItem('activeNavItem', href);
+
             // Add click animation
             $(this).addClass('nav-clicked');
             setTimeout(() => {
@@ -128,8 +147,97 @@ $(document).ready(function () {
                     $('.modern-sidebar').css('transform', 'translateX(-100%)');
                 }, 150);
             }
+        } else if (isDisabled) {
+            // Prevent navigation for disabled items
+            e.preventDefault();
+
+            // Show access denied feedback
+            showAccessDeniedFeedback($(this));
         }
     });
+
+    // Enhanced hover effects for nav items (desktop only)
+    if (!isMobile()) {
+        $('.modern-nav-link').on('mouseenter', function () {
+            const isDisabled = $(this).hasClass('nav-disabled');
+
+            if (isDisabled) {
+                $(this).addClass('nav-disabled-hover');
+                showDisabledTooltip($(this));
+            } else if (!$(this).hasClass('active')) {
+                $(this).addClass('nav-hovered');
+
+                // Animate icon
+                const icon = $(this).find('.nav-icon');
+                icon.addClass('icon-hover-effect');
+            }
+        }).on('mouseleave', function () {
+            $(this).removeClass('nav-hovered nav-disabled-hover');
+            hideDisabledTooltip();
+
+            // Reset icon animation
+            const icon = $(this).find('.nav-icon');
+            icon.removeClass('icon-hover-effect');
+        });
+    }
+
+    // Function to show access denied feedback
+    function showAccessDeniedFeedback($element) {
+        const feedback = $('<div class="access-denied-feedback">Akses Terbatas</div>');
+        $element.append(feedback);
+
+        setTimeout(() => {
+            feedback.addClass('show');
+        }, 10);
+
+        setTimeout(() => {
+            feedback.removeClass('show');
+            setTimeout(() => {
+                feedback.remove();
+            }, 300);
+        }, 2000);
+    }
+
+    // Function to show disabled tooltip
+    function showDisabledTooltip($element) {
+        if ($('.disabled-tooltip').length > 0) return;
+
+        const tooltip = $('<div class="disabled-tooltip">Akses tidak tersedia untuk role Anda</div>');
+        const rect = $element[0].getBoundingClientRect();
+
+        tooltip.css({
+            position: 'fixed',
+            top: rect.top + rect.height / 2 - 15,
+            left: rect.right + 10,
+            zIndex: 10000
+        });
+
+        $('body').append(tooltip);
+
+        setTimeout(() => {
+            tooltip.addClass('show');
+        }, 10);
+    }
+
+    // Function to hide disabled tooltip
+    function hideDisabledTooltip() {
+        $('.disabled-tooltip').removeClass('show');
+        setTimeout(() => {
+            $('.disabled-tooltip').remove();
+        }, 300);
+    }
+
+    // Restore focus to previously active nav item
+    if (savedActiveNavItem) {
+        setTimeout(() => {
+            const targetNavItem = $(`.modern-nav-link[href="${savedActiveNavItem}"]`);
+            if (targetNavItem.length) {
+                targetNavItem.focus();
+            }
+            // Clear the saved item after restoration
+            localStorage.removeItem('activeNavItem');
+        }, 100);
+    }
 
     // Enhanced hover effects for nav items (desktop only)
     if (!isMobile()) {
@@ -391,17 +499,91 @@ $(document).ready(function () {
         $(this).removeClass('nav-focused');
     });
 
-    // Statistics card interactions - REMOVED EXPAND-COLLAPSE
-    // $('.card .card-header').on('click', function() {
-    //     const card = $(this).closest('.card');
-    //     const body = card.find('.card-body');
-    //
-    //     if (body.is(':visible')) {
-    //         body.slideUp();
-    //         $(this).find('i').removeClass('fa-minus').addClass('fa-plus');
-    //     } else {
-    //         body.slideDown();
-    //         $(this).find('i').removeClass('fa-plus').addClass('fa-minus');
-    //     }
-    // });
+    // Initialize disabled state for restricted menu items
+    initializeDisabledMenuItems();
+
+    function initializeDisabledMenuItems() {
+        // Mark menu items as disabled based on data attribute from server
+        $('.modern-nav-link').each(function () {
+            const hasAccess = $(this).data('has-access');
+
+            if (hasAccess === false || hasAccess === 'false') {
+                $(this).addClass('nav-disabled')
+                    .attr('tabindex', '-1')
+                    .css('cursor', 'not-allowed');
+            }
+        });
+    }
 });
+
+// Inject additional CSS for disabled menu items and enhanced styling
+$('<style>')
+    .prop('type', 'text/css')
+    .html(`
+        .modern-nav-link.nav-disabled {
+            opacity: 0.5;
+            cursor: not-allowed !important;
+            pointer-events: auto;
+        }
+        
+        .modern-nav-link.nav-disabled .nav-text,
+        .modern-nav-link.nav-disabled .nav-icon {
+            color: #6c757d !important;
+        }
+        
+        .modern-nav-link.nav-disabled-hover {
+            background-color: rgba(220, 53, 69, 0.1) !important;
+            border-left: 3px solid #dc3545;
+        }
+        
+        .access-denied-feedback {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #dc3545;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .access-denied-feedback.show {
+            opacity: 1;
+        }
+        
+        .disabled-tooltip {
+            background: #343a40;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        
+        .disabled-tooltip.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .disabled-tooltip::before {
+            content: '';
+            position: absolute;
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 6px solid transparent;
+            border-right-color: #343a40;
+        }
+    `)
+    .appendTo('head');

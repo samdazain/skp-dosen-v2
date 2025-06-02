@@ -48,7 +48,8 @@ $menuItems = $navConfig->getSidebarMenu();
                 data-accordion="false">
                 <?php foreach ($menuItems as $item): ?>
                     <li class="nav-item modern-nav-item">
-                        <a href="<?= $item['path'] ?>" class="nav-link modern-nav-link <?= $item['active'] ?>">
+                        <a href="<?= $item['path'] ?>" class="nav-link modern-nav-link <?= $item['active'] ?>"
+                            data-has-access="<?= $item['hasAccess'] ? 'true' : 'false' ?>">
                             <div class="nav-icon-container">
                                 <i class="nav-icon <?= $item['icon'] ?>"></i>
                                 <div class="icon-background"></div>

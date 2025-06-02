@@ -36,17 +36,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const $form = $(this);
         const $submitBtn = $('.login-btn');
 
-        // Validate all fields before submission
-        let isValid = true;
-        $('.input-field').each(function () {
-            if (!validateInput($(this))) {
-                isValid = false;
-            }
-        });
+        // Basic validation check
+        const nipValue = $('#nip').val().trim();
+        const passwordValue = $('#password').val().trim();
 
-        if (!isValid) {
+        if (!nipValue || !passwordValue) {
             e.preventDefault();
-            showNotification('Mohon periksa kembali data yang Anda masukkan', 'error');
+            showNotification('Mohon lengkapi semua field terlebih dahulu', 'error');
             return false;
         }
 
@@ -97,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
         $container.removeClass('error success');
 
         if (value === '') {
-            return true; // Don't show error for empty fields while typing
+            return false; // Required fields must have values
         }
 
         let isValid = true;
@@ -126,6 +122,13 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         return isValid;
+    }
+
+    // Check if both fields have values (simplified)
+    function bothFieldsHaveValues() {
+        const nipValue = $('#nip').val().trim();
+        const passwordValue = $('#password').val().trim();
+        return nipValue.length > 0 && passwordValue.length > 0;
     }
 
     // Show field-specific error
@@ -203,16 +206,29 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Keyboard shortcuts
-    $(document).on('keydown', function (e) {
-        // Enter key to submit form
-        if (e.key === 'Enter' && !e.shiftKey) {
-            if ($('.input-field:focus').length > 0) {
-                $('form').submit();
+    // SIMPLIFIED ENTER KEY HANDLING
+    $('.input-field').on('keydown', function (e) {
+        if (e.key === 'Enter') {
+            const $currentInput = $(this);
+            const currentFieldName = $currentInput.attr('name');
+
+            if (currentFieldName === 'nip') {
+                // If on NIP field, move to password field
+                e.preventDefault();
+                $('#password').focus();
+            } else if (currentFieldName === 'password') {
+                // If on password field, allow default form submission
+                // Do not prevent default - let the form submit naturally
+                if (!bothFieldsHaveValues()) {
+                    e.preventDefault();
+                    showNotification('Mohon lengkapi semua field terlebih dahulu', 'warning');
+                }
             }
         }
+    });
 
-        // Tab navigation enhancement
+    // Tab navigation enhancement
+    $(document).on('keydown', function (e) {
         if (e.key === 'Tab') {
             const $focused = $(':focus');
             if ($focused.hasClass('input-field')) {

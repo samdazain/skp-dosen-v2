@@ -41,7 +41,7 @@ abstract class BaseController extends Controller
      * Be sure to declare properties for any property fetch you initialized.
      * The creation of dynamic property is deprecated in PHP 8.2.
      */
-    // protected $session;
+    protected $session;
 
     /**
      * @return void
@@ -50,6 +50,29 @@ abstract class BaseController extends Controller
     {
         // Do Not Edit This Line
         parent::initController($request, $response, $logger);
+
+        // Load role helper globally
+        helper(['role']);
+
+        // Ensure session service is available
+        $this->session = \Config\Services::session();
+
+        // Debug session data with more detail
+        if ($this->session->has('isLoggedIn')) {
+            $sessionData = [
+                'user_id' => $this->session->get('user_id'),
+                'user_role' => $this->session->get('user_role'),
+                'user_name' => $this->session->get('user_name'),
+                'isLoggedIn' => $this->session->get('isLoggedIn')
+            ];
+            log_message('debug', 'BaseController - Session data: ' . json_encode($sessionData));
+
+            // Specifically log the user role for debugging
+            $userRole = $this->session->get('user_role');
+            log_message('debug', 'BaseController - User role from session: ' . ($userRole ?? 'NULL') . ' (type: ' . gettype($userRole) . ')');
+        } else {
+            log_message('debug', 'BaseController - No active session found');
+        }
 
         // If user is logged in, ensure semester is loaded
         if (session()->get('isLoggedIn')) {

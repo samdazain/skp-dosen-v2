@@ -30,8 +30,10 @@ $routes->post('/change-password', [AuthController::class, 'changePassword']);
 
 // Protected Routes (Require Authentication)
 $routes->group('', ['filter' => 'auth'], static function ($routes) {
-    // Dashboard
-    $routes->get('/dashboard', 'DashboardController::dashboard');
+    // Settings route (moved here to be protected)
+    $routes->get('/dashboard', [DashboardController::class, 'index']);
+    $routes->get('/settings', [AuthController::class, 'settings']);
+    $routes->post('/change-password', [AuthController::class, 'changePassword']);
 
     // Upload routes
     $routes->group('upload', static function ($routes) {
@@ -136,5 +138,13 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
             $routes->post('update/(:num)', 'UserController::update/$1');
             $routes->post('delete/(:num)', 'UserController::delete/$1');
         });
+    });
+
+    // Protected routes with role restrictions
+    $routes->group('', ['filter' => 'role'], function ($routes) {
+        $routes->get('/score', 'ScoreController::index', ['filter' => 'role:admin,dekan']);
+        $routes->get('/user', 'UserController::index', ['filter' => 'role:admin,dekan']);
+
+        // Other protected routes...
     });
 });

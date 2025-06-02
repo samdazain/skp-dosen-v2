@@ -138,12 +138,6 @@
             }
         }
 
-        // Form submission animation
-        document.querySelector('.form').addEventListener('submit', function(e) {
-            const btn = document.querySelector('.login-btn');
-            btn.classList.add('loading');
-        });
-
         // Input focus animations
         document.querySelectorAll('.input-field').forEach(input => {
             input.addEventListener('focus', function() {
