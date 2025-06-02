@@ -13,7 +13,7 @@
         $('.cooperation-level-dropdown').on('change', function() {
             const $select = $(this);
             const newValue = $select.val();
-            
+
             // Update dropdown styling immediately for visual feedback
             updateDropdownStyle($select, newValue);
         });
@@ -26,10 +26,10 @@
             'cooperative': 'Kooperatif',
             'very_cooperative': 'Sangat Kooperatif'
         };
-        
+
         const levelText = levelLabels[level] || level;
         const lecturerName = $(`tr:has([data-lecturer-id="${lecturerId}"])`).find('strong').text();
-        
+
         Swal.fire({
             title: 'Konfirmasi Perubahan',
             text: `Apakah Anda yakin ingin mengubah level kerjasama "${lecturerName}" menjadi ${levelText}?`,
@@ -94,7 +94,7 @@
             error: function(xhr, status, error) {
                 Swal.close();
                 let errorMessage = 'Terjadi kesalahan sistem. Silakan coba lagi.';
-                
+
                 // Try to get specific error message from response
                 if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
@@ -108,7 +108,7 @@
                         console.error('Non-JSON error response:', xhr.responseText);
                     }
                 }
-                
+
                 Swal.fire({
                     icon: 'error',
                     title: 'Error!',
@@ -124,14 +124,14 @@
     function revertCooperationDropdown(lecturerId) {
         // Get the dropdown for this lecturer
         const $dropdown = $(`.cooperation-level-dropdown[data-lecturer-id="${lecturerId}"]`);
-        
+
         if ($dropdown.length) {
             // Get the original value from the selected option or from data attribute
             const originalValue = $dropdown.data('original-value') || $dropdown.find('option:selected').val();
-            
+
             // Reset the dropdown
             $dropdown.val(originalValue);
-            
+
             // Update styling
             updateDropdownStyle($dropdown, originalValue);
         }
@@ -140,11 +140,11 @@
     function updateTableRow(lecturerId, newScore, level) {
         // Update score
         $(`#score_${lecturerId}`).text(newScore);
-        
+
         // Update status badge based on new score
         const $statusCell = $(`#status_${lecturerId}`);
         let statusLabel, badgeClass, scoreClass;
-        
+
         if (newScore >= 90) {
             statusLabel = 'Sangat Baik';
             badgeClass = 'badge-success';
@@ -162,17 +162,17 @@
             badgeClass = 'badge-danger';
             scoreClass = 'text-danger';
         }
-        
+
         // Update score color
         $(`#score_${lecturerId}`).removeClass('text-success text-primary text-warning text-danger').addClass(scoreClass);
-        
+
         // Update status badge
         $statusCell.html(`<span class="badge ${badgeClass}">${statusLabel}</span>`);
-        
+
         // Store the current value as original for future reversion
         const $dropdown = $(`.cooperation-level-dropdown[data-lecturer-id="${lecturerId}"]`);
         $dropdown.data('original-value', level);
-        
+
         // Update dropdown styling
         updateDropdownStyle($dropdown, level);
     }
@@ -180,9 +180,9 @@
     function updateDropdownStyle($select, value) {
         // Remove all color classes
         $select.removeClass('border-danger border-warning border-info border-success text-danger text-warning text-info text-success');
-        
+
         // Apply color based on cooperation level
-        switch(value) {
+        switch (value) {
             case 'not_cooperative':
                 $select.addClass('border-danger text-danger');
                 break;

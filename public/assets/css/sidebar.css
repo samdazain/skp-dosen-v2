@@ -1,0 +1,1046 @@
+/* ==============================================
+   MODERN SIDEBAR STYLES
+   ============================================== */
+
+/* Root Variables for Consistency */
+:root {
+  --sidebar-width: 250px;
+  --sidebar-collapsed-width: 120px;
+  --brand-height: 70px;
+  --primary-green: #28a745;
+  --secondary-green: #20c997;
+  --tertiary-blue: #17a2b8;
+  --text-dark: #2c3e50;
+  --text-muted: #6c757d;
+  --border-light: #e3f2fd;
+  --shadow-light: rgba(40, 167, 69, 0.08);
+  --shadow-medium: rgba(40, 167, 69, 0.15);
+  --shadow-heavy: rgba(40, 167, 69, 0.3);
+  --transition-fast: 0.2s;
+  --transition-normal: 0.3s;
+  --transition-slow: 0.4s;
+  --easing-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --easing-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Base Sidebar Container */
+.modern-sidebar {
+  position: relative; /* Ubah dari fixed ke relative */
+  top: 0;
+  left: 0;
+  width: var(--sidebar-width);
+  height: 100vh;
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  border-right: 1px solid var(--border-light);
+  box-shadow: 0 0 20px var(--shadow-light);
+  z-index: 1038;
+  overflow: hidden;
+  transition: all var(--transition-normal) var(--easing-smooth);
+  transform: translateZ(0);
+  will-change: transform, width;
+}
+
+.modern-sidebar::before {
+  content: '';
+  position: absolute; /* Ubah dari fixed */
+  top: 0;
+  right: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    var(--primary-green) 0%,
+    var(--secondary-green) 50%,
+    var(--tertiary-blue) 100%
+  );
+  opacity: 0.8;
+  transition: opacity var(--transition-normal) ease;
+}
+
+.modern-sidebar:hover {
+  box-shadow: 0 0 30px var(--shadow-medium);
+}
+
+.modern-sidebar:hover::before {
+  opacity: 1;
+}
+
+/* ==============================================
+   BRAND SECTION
+   ============================================== */
+
+.modern-brand {
+  display: flex;
+  align-items: center;
+  padding: 1.2rem 1rem;
+  min-height: var(--brand-height);
+  background: linear-gradient(
+    135deg,
+    var(--primary-green) 0%,
+    var(--secondary-green) 50%,
+    var(--tertiary-blue) 100%
+  );
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-normal) ease;
+  transform: translateZ(0);
+}
+
+.modern-brand::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  transition: left 0.6s ease;
+}
+
+.modern-brand:hover {
+  text-decoration: none;
+  transform: scale(1.02) translateZ(0);
+}
+
+.modern-brand:hover::before {
+  left: 100%;
+}
+
+.brand-logo-container {
+  position: relative;
+  margin-right: 0.75rem;
+  flex-shrink: 0;
+  transition: margin-right var(--transition-normal) ease;
+}
+
+.brand-image {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all var(--transition-normal) ease;
+  position: relative;
+  z-index: 2;
+  transform: translateZ(0);
+}
+
+.brand-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.2) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity var(--transition-normal) ease;
+}
+
+.modern-brand:hover .brand-image {
+  transform: scale(1.1) rotate(5deg) translateZ(0);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.modern-brand:hover .brand-overlay {
+  opacity: 1;
+}
+
+.brand-text {
+  color: white;
+  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  flex-grow: 1;
+  transition: opacity var(--transition-normal) ease;
+}
+
+.brand-main {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.brand-sub {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  font-weight: 400;
+}
+
+/* ==============================================
+   USER PANEL SECTION
+   ============================================== */
+
+.user-panel {
+  border-bottom: 1px solid rgba(40, 167, 69, 0.1);
+  position: relative;
+  transition: all var(--transition-normal) ease;
+  margin: 1rem 0 1rem 0;
+  padding-bottom: 1rem;
+}
+
+.user-panel::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  right: 20px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--primary-green) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity var(--transition-normal) ease;
+}
+
+.user-panel:hover::after {
+  opacity: 1;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--primary-green),
+    var(--secondary-green)
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.5rem;
+  transition: all var(--transition-normal) ease;
+  box-shadow: 0 2px 10px var(--shadow-light);
+  transform: translateZ(0);
+}
+
+.user-avatar:hover {
+  transform: scale(1.1) translateZ(0);
+  box-shadow: 0 4px 15px var(--shadow-medium);
+}
+
+.user-name {
+  color: var(--text-dark);
+  font-weight: 600;
+  text-decoration: none;
+  transition: color var(--transition-normal) ease;
+}
+
+.user-name:hover {
+  color: var(--primary-green);
+  text-decoration: none;
+}
+
+.user-role {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+}
+
+.status-indicator {
+  color: var(--primary-green);
+  font-size: 0.6rem;
+  margin-right: 0.3rem;
+  animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ==============================================
+   NAVIGATION SECTION
+   ============================================== */
+
+.modern-nav {
+  padding: 0;
+  list-style: none;
+}
+
+.modern-nav-item {
+  margin-left: -12px;
+  margin-bottom: 0.2rem;
+  position: relative;
+  opacity: 0;
+  transform: translateX(-20px);
+  animation: slideInLeft 0.5s ease forwards;
+}
+
+/* Staggered animation delays */
+.modern-nav-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+.modern-nav-item:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.modern-nav-item:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.modern-nav-item:nth-child(4) {
+  animation-delay: 0.25s;
+}
+.modern-nav-item:nth-child(5) {
+  animation-delay: 0.3s;
+}
+.modern-nav-item:nth-child(6) {
+  animation-delay: 0.35s;
+}
+.modern-nav-item:nth-child(7) {
+  animation-delay: 0.4s;
+}
+.modern-nav-item:nth-child(8) {
+  animation-delay: 0.45s;
+}
+
+@keyframes slideInLeft {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.modern-nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0.75rem 0rem 1 rem;
+  margin: 0 0 0 0.75rem;
+  border-radius: 12px;
+  color: #495057;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-normal) var(--easing-smooth);
+  border: 2px solid transparent;
+  background: transparent;
+  transform: translateZ(0);
+  will-change: transform, background-color, border-color;
+}
+
+/* Fixed hover slide effect */
+.modern-nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(40, 167, 69, 0.05) 0%,
+    rgba(40, 167, 69, 0.1) 50%,
+    rgba(40, 167, 69, 0.05) 100%
+  );
+  transition: left var(--transition-slow) ease-in-out;
+  z-index: 1;
+  border-radius: 10px;
+  transform: translateZ(0);
+}
+
+.modern-nav-link:hover::before {
+  left: 100%;
+}
+
+.modern-nav-link:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(40, 167, 69, 0.08) 0%,
+    rgba(32, 201, 151, 0.06) 100%
+  );
+  color: var(--primary-green);
+  text-decoration: none;
+  transform: translateX(8px) translateZ(0);
+  border-color: rgba(40, 167, 69, 0.2);
+  box-shadow: 0 4px 15px var(--shadow-light);
+}
+
+.modern-nav-link.active {
+  background: linear-gradient(
+    135deg,
+    var(--primary-green) 0%,
+    var(--secondary-green) 100%
+  );
+  color: white;
+  font-weight: 600;
+  transform: translateX(8px) translateZ(0);
+  box-shadow: 0 6px 20px var(--shadow-heavy);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.modern-nav-link.active .nav-indicator {
+  opacity: 1;
+  transform: scaleY(1) translateZ(0);
+}
+
+.modern-nav-link.active::before {
+  display: none;
+}
+
+/* Navigation Icon Container */
+.nav-icon-container {
+  position: relative;
+  margin-right: 0.75rem;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  flex-shrink: 0;
+  transition: margin-right var(--transition-normal) ease;
+}
+
+.nav-icon {
+  font-size: 1.1rem;
+  transition: all var(--transition-normal) ease;
+  z-index: 3;
+  position: relative;
+  transform: translateZ(0);
+}
+
+.icon-background {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(40, 167, 69, 0.2);
+  transform: translate(-50%, -50%) translateZ(0);
+  transition: all var(--transition-normal) ease;
+  z-index: 1;
+}
+
+.modern-nav-link:hover .icon-background {
+  width: 35px;
+  height: 35px;
+}
+
+.modern-nav-link.active .nav-icon {
+  animation: iconBounce 0.6s ease;
+}
+
+@keyframes iconBounce {
+  0%,
+  100% {
+    transform: scale(1) translateZ(0);
+  }
+  50% {
+    transform: scale(1.2) translateZ(0);
+  }
+}
+
+/* Navigation Text */
+.nav-text {
+  flex-grow: 1;
+  margin: 0;
+  font-weight: 500;
+  position: relative;
+  z-index: 2;
+  transition: opacity var(--transition-normal) ease;
+  white-space: nowrap;
+}
+
+/* Navigation Indicator */
+.nav-indicator {
+  position: absolute;
+  right: -0.75rem;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0) translateZ(0);
+  width: 4px;
+  height: 20px;
+  background: linear-gradient(
+    180deg,
+    var(--primary-green),
+    var(--secondary-green)
+  );
+  border-radius: 2px;
+  opacity: 0;
+  transition: all var(--transition-normal) ease;
+  transform-origin: center;
+}
+
+/* ==============================================
+   LOGOUT SECTION
+   ============================================== */
+
+.logout-item {
+  margin-top: 1rem;
+  position: relative;
+}
+
+.logout-item::before {
+  content: '';
+  position: absolute;
+  top: -0.5rem;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(40, 167, 69, 0.3) 50%,
+    transparent 100%
+  );
+}
+
+.logout-item .modern-nav-link:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(220, 53, 69, 0.08) 0%,
+    rgba(255, 193, 7, 0.06) 100%
+  );
+  color: #dc3545;
+  border-color: rgba(220, 53, 69, 0.2);
+}
+
+.logout-item .modern-nav-link:hover .icon-background {
+  background: rgba(220, 53, 69, 0.2);
+}
+
+/* ==============================================
+    COLLAPSED SIDEBAR STATES
+    ============================================== */
+
+.sidebar-collapse .modern-sidebar {
+  width: var(--sidebar-collapsed-width);
+  overflow: visible;
+}
+
+/* Fix icon visibility in collapsed state */
+.sidebar-collapse .modern-nav-link {
+  justify-content: center;
+  padding: 0.75rem;
+  position: relative;
+}
+
+.sidebar-collapse .nav-icon-container {
+  margin-right: 0;
+  position: relative;
+  z-index: 10; /* Ensure icons stay visible */
+}
+
+.sidebar-collapse .nav-icon {
+  display: block !important; /* Force icon visibility */
+  opacity: 1 !important;
+  font-size: 1.2rem; /* Slightly larger for better visibility */
+}
+
+/* Hide text elements in collapsed state */
+.sidebar-collapse .brand-text,
+.sidebar-collapse .nav-text,
+.sidebar-collapse .user-name,
+.sidebar-collapse .user-role {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  overflow: hidden;
+  transition: all var(--transition-normal) ease;
+}
+
+.sidebar-collapse .brand-logo-container {
+  margin-right: 0;
+}
+
+/* Fix background expansion on hover - ENHANCED */
+.sidebar-collapse .modern-sidebar {
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  box-shadow: 0 0 20px var(--shadow-light);
+  transition: all var(--transition-normal) var(--easing-smooth);
+}
+
+.sidebar-collapse .modern-sidebar:hover {
+  width: var(--sidebar-width);
+  overflow: visible;
+  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  box-shadow: 0 0 30px var(--shadow-medium);
+  z-index: 1040; /* Higher z-index on hover */
+  transition: all var(--transition-normal) var(--easing-smooth);
+}
+
+/* Smooth text reveal on hover expand */
+.sidebar-collapse .modern-sidebar:hover .brand-text,
+.sidebar-collapse .modern-sidebar:hover .nav-text,
+.sidebar-collapse .modern-sidebar:hover .user-name,
+.sidebar-collapse .modern-sidebar:hover .user-role {
+  opacity: 1;
+  pointer-events: auto;
+  width: auto;
+  transition: opacity var(--transition-normal) ease 0.15s,
+    width var(--transition-normal) ease;
+}
+
+.sidebar-collapse .modern-sidebar:hover .brand-logo-container {
+  margin-right: 0.75rem;
+  transition: margin-right var(--transition-normal) ease;
+}
+
+.sidebar-collapse .modern-sidebar:hover .modern-nav-link {
+  justify-content: flex-start;
+  padding: 0.75rem 1rem;
+  transition: all var(--transition-normal) ease;
+}
+
+.sidebar-collapse .modern-sidebar:hover .nav-icon-container {
+  margin-right: 0.75rem;
+  transition: margin-right var(--transition-normal) ease;
+}
+
+/* Enhanced background consistency for collapsed hover */
+.sidebar-collapse .modern-sidebar:hover::before {
+  opacity: 1;
+}
+
+.sidebar-collapse .modern-sidebar:hover .modern-sidebar-content {
+  background: transparent;
+}
+
+/* Fix nav link backgrounds in collapsed hover state */
+.sidebar-collapse .modern-sidebar:hover .modern-nav-link {
+  background: transparent;
+  border-radius: 12px;
+  margin: 0 0.75rem;
+}
+
+.sidebar-collapse .modern-sidebar:hover .modern-nav-link:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(40, 167, 69, 0.08) 0%,
+    rgba(32, 201, 151, 0.06) 100%
+  );
+  transform: translateX(8px) translateZ(0);
+}
+
+.sidebar-collapse .modern-sidebar:hover .modern-nav-link.active {
+  background: linear-gradient(
+    135deg,
+    var(--primary-green) 0%,
+    var(--secondary-green) 100%
+  );
+}
+
+/* Ensure user panel background follows the expansion */
+.sidebar-collapse .modern-sidebar:hover .user-panel {
+  background: transparent;
+  transition: background var(--transition-normal) ease;
+}
+
+/* Fix brand section background in collapsed hover */
+.sidebar-collapse .modern-sidebar:hover .modern-brand {
+  background: linear-gradient(
+    135deg,
+    var(--primary-green) 0%,
+    var(--secondary-green) 50%,
+    var(--tertiary-blue) 100%
+  );
+}
+
+/* Enhanced collapsed state icons - ensure they're always visible */
+.sidebar-collapse .modern-nav-link .nav-icon {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  color: #495057;
+  transition: color var(--transition-normal) ease;
+}
+
+.sidebar-collapse .modern-nav-link:hover .nav-icon {
+  color: var(--primary-green);
+}
+
+.sidebar-collapse .modern-nav-link.active .nav-icon {
+  color: white;
+}
+
+/* Ensure icon container is properly positioned in collapsed state */
+.sidebar-collapse .nav-icon-container {
+  width: 24px;
+  height: 24px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0;
+  position: relative;
+}
+
+/* Fix tooltip positioning for collapsed sidebar */
+.sidebar-collapse .modern-nav-link[data-toggle='tooltip'] {
+  position: relative;
+}
+
+/* Enhanced smooth transition for sidebar width changes */
+.modern-sidebar {
+  transition: width var(--transition-normal) var(--easing-smooth),
+    background var(--transition-normal) ease,
+    box-shadow var(--transition-normal) ease;
+}
+
+/* Prevent text overflow in collapsed state */
+.sidebar-collapse .nav-text,
+.sidebar-collapse .brand-text,
+.sidebar-collapse .user-name,
+.sidebar-collapse .user-role {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Fix user avatar positioning in collapsed state */
+.sidebar-collapse .user-avatar {
+  margin-right: 0;
+}
+
+.sidebar-collapse .modern-sidebar:hover .user-avatar {
+  margin-right: 0.75rem;
+  transition: margin-right var(--transition-normal) ease;
+}
+
+/* Enhanced background transition for the entire sidebar content */
+.sidebar-collapse .modern-sidebar-content {
+  background: transparent;
+  transition: background var(--transition-normal) ease;
+}
+
+/* Fix any z-index issues with collapsed sidebar */
+.sidebar-collapse .modern-sidebar {
+  z-index: 1038;
+}
+
+.sidebar-collapse .modern-sidebar:hover {
+  z-index: 1040;
+}
+
+/* Ensure smooth icon transitions */
+.sidebar-collapse .nav-icon {
+  transform: translateZ(0);
+  transition: all var(--transition-normal) ease;
+}
+
+/* ==============================================
+   SIDEBAR CONTENT SCROLLING
+   ============================================== */
+
+.modern-sidebar-content {
+  height: calc(100vh - var(--brand-height));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(40, 167, 69, 0.3) transparent;
+}
+
+.modern-sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modern-sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modern-sidebar-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    var(--primary-green),
+    var(--secondary-green)
+  );
+  border-radius: 3px;
+}
+
+.modern-sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #1e7e34, #1c9970);
+}
+
+/* ==============================================
+   MOBILE RESPONSIVE
+   ============================================== */
+
+@media (max-width: 768px) {
+  .modern-sidebar {
+    transform: translateX(-100%) translateZ(0);
+    transition: transform var(--transition-normal) ease;
+  }
+
+  .sidebar-open .modern-sidebar {
+    transform: translateX(0) translateZ(0);
+  }
+
+  body.sidebar-open::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1037;
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* ==============================================
+   ACCESSIBILITY & PERFORMANCE
+   ============================================== */
+
+/* Focus States */
+.modern-nav-link:focus-visible {
+  outline: 2px solid var(--primary-green);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.1);
+}
+
+.modern-brand:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .modern-sidebar {
+    border-right: 2px solid #000;
+  }
+
+  .modern-nav-link {
+    border: 1px solid transparent;
+  }
+
+  .modern-nav-link:hover,
+  .modern-nav-link.active {
+    border-color: #000;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .modern-sidebar,
+  .modern-nav-link,
+  .brand-image,
+  .user-avatar,
+  .nav-icon {
+    transition: none;
+  }
+
+  .modern-nav-item {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .status-indicator {
+    animation: none;
+  }
+}
+
+/* Performance Optimizations */
+.modern-sidebar * {
+  will-change: auto;
+}
+
+.modern-nav-link {
+  contain: layout style paint;
+}
+
+/* GPU Acceleration for smooth animations */
+.modern-sidebar,
+.modern-nav-link,
+.brand-image,
+.user-avatar {
+  transform: translateZ(0);
+}
+
+/* ==============================================
+   UTILITY CLASSES
+   ============================================== */
+
+.sidebar-loading .modern-nav-item {
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.user-panel-hover {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(40, 167, 69, 0.05) 100%
+  );
+}
+
+.brand-hover {
+  transform: scale(1.02) translateZ(0);
+}
+
+.hover-expanded {
+  transform: translateX(3px) translateZ(0);
+  transition: transform var(--transition-fast) ease;
+}
+
+/* ==============================================
+   ENHANCED EFFECTS FROM JAVASCRIPT
+   ============================================== */
+
+.nav-clicked {
+  transform: translateX(8px) scale(0.98) !important;
+}
+
+.nav-hovered .nav-icon {
+  transform: scale(1.1);
+  color: var(--primary-green);
+}
+
+.icon-hover-effect {
+  animation: iconPulse 0.6s ease-in-out;
+}
+
+@keyframes iconPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(40, 167, 69, 0.3);
+  pointer-events: none;
+  animation: rippleAnimation 0.6s ease-out;
+  z-index: 0;
+}
+
+@keyframes rippleAnimation {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.logout-clicked {
+  transform: translateX(8px) scale(0.95) !important;
+  background: rgba(220, 53, 69, 0.1) !important;
+}
+
+.nav-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(40, 167, 69, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  z-index: 10;
+}
+
+.nav-loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--primary-green);
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.modern-popup {
+  border-radius: 15px !important;
+  border: 2px solid var(--primary-green) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+.modern-confirm-btn {
+  background: linear-gradient(
+    135deg,
+    var(--primary-green),
+    var(--secondary-green)
+  ) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  color: white !important;
+  transition: all var(--transition-normal) ease !important;
+}
+
+.modern-confirm-btn:hover {
+  background: linear-gradient(135deg, #1e7e34, #1c9970) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3) !important;
+}
+
+.modern-cancel-btn {
+  background: var(--text-muted) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 12px 24px !important;
+  color: white !important;
+  transition: all var(--transition-normal) ease !important;
+}
+
+.modern-cancel-btn:hover {
+  background: #545b62 !important;
+  transform: translateY(-2px) !important;
+}
+
+.nav-focused {
+  outline: 2px solid var(--primary-green) !important;
+  outline-offset: 2px !important;
+}
+
+/* Smooth easing function */
+@keyframes easeInOutCubic {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

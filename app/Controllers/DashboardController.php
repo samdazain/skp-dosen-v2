@@ -15,7 +15,23 @@ class DashboardController extends BaseController
 
     public function index()
     {
-        return redirect()->to('login');
+        // Check if user is logged in
+        if (!session()->get('isLoggedIn')) {
+            return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        $userData = [
+            'id' => session()->get('user_id'),
+            'name' => session()->get('user_name'),
+            'role' => session()->get('user_role'),
+            'nip' => session()->get('user_nip'),
+            'email' => session()->get('user_email'),
+        ];
+
+        return view('dashboard/index', [
+            'pageTitle' => 'Dashboard | SKP Dosen',
+            'user' => $userData
+        ]);
     }
 
     public function dashboard()

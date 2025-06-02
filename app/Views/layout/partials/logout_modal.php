@@ -1,8 +1,7 @@
 <?php
 
 ?>
-<div class="modal fade" id="logoutModal" tabindex="-1" role="dialog" aria-labelledby="logoutModalLabel"
-    aria-hidden="true">
+<div class="modal fade" id="" tabindex="-1" role="dialog" aria-labelledby="logoutModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-confirm" role="document">
         <div class="modal-content">
             <div class="modal-header">

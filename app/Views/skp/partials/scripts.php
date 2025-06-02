@@ -207,20 +207,6 @@
 
         // Initialize update checking (uncomment if needed)
         // setInterval(checkForUpdates, 300000); // Check every 5 minutes
-
-        // Statistics card interactions
-        $('.card .card-header').on('click', function() {
-            const card = $(this).closest('.card');
-            const body = card.find('.card-body');
-
-            if (body.is(':visible')) {
-                body.slideUp();
-                $(this).find('i').removeClass('fa-minus').addClass('fa-plus');
-            } else {
-                body.slideDown();
-                $(this).find('i').removeClass('fa-plus').addClass('fa-minus');
-            }
-        });
     });
 
     // Global function for refreshing SKP data

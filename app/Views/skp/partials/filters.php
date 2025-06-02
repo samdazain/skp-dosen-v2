@@ -41,7 +41,8 @@
                                 'Dosen Prodi' => 'Dosen Prodi'
                             ];
                             foreach ($positions as $value => $label): ?>
-                                <option value="<?= $value ?>" <?= (isset($filters['position']) && $filters['position'] === $value) ? 'selected' : '' ?>>
+                                <option value="<?= $value ?>"
+                                    <?= (isset($filters['position']) && $filters['position'] === $value) ? 'selected' : '' ?>>
                                     <?= $label ?>
                                 </option>
                             <?php endforeach; ?>
@@ -62,7 +63,8 @@
                                 'magister_teknologi_informasi' => 'Magister TI'
                             ];
                             foreach ($programs as $value => $label): ?>
-                                <option value="<?= $value ?>" <?= (isset($filters['study_program']) && $filters['study_program'] === $value) ? 'selected' : '' ?>>
+                                <option value="<?= $value ?>"
+                                    <?= (isset($filters['study_program']) && $filters['study_program'] === $value) ? 'selected' : '' ?>>
                                     <?= $label ?>
                                 </option>
                             <?php endforeach; ?>
@@ -74,19 +76,23 @@
                         <label for="skp_category">Kategori SKP</label>
                         <select name="skp_category" id="skp_category" class="form-control select2">
                             <option value="">Semua Kategori</option>
-                            <option value="Sangat Baik" <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Sangat Baik') ? 'selected' : '' ?>>
+                            <option value="Sangat Baik"
+                                <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Sangat Baik') ? 'selected' : '' ?>>
                                 Sangat Baik (≥88)
                             </option>
-                            <option value="Baik" <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Baik') ? 'selected' : '' ?>>
+                            <option value="Baik"
+                                <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Baik') ? 'selected' : '' ?>>
                                 Baik (76-87)
                             </option>
-                            <option value="Cukup" <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Cukup') ? 'selected' : '' ?>>
+                            <option value="Cukup"
+                                <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Cukup') ? 'selected' : '' ?>>
                                 Cukup (61-75)
                             </option>
-                            <option value="Kurang" <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Kurang') ? 'selected' : '' ?>>
-                                Kurang (<61)
-                                    </option>
-                            <option value="Belum Dinilai" <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Belum Dinilai') ? 'selected' : '' ?>>
+                            <option value="Kurang"
+                                <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Kurang') ? 'selected' : '' ?>>
+                                Kurang (<61) </option>
+                            <option value="Belum Dinilai"
+                                <?= (isset($filters['skp_category']) && $filters['skp_category'] === 'Belum Dinilai') ? 'selected' : '' ?>>
                                 Belum Dinilai
                             </option>
                         </select>
