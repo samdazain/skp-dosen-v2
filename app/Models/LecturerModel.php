@@ -128,49 +128,111 @@ class LecturerModel extends Model
         return $programs[$studyProgram] ?? ucwords(str_replace('_', ' ', $studyProgram));
     }
 
-    public function getLecturers($search = null, $limit = 10, $offset = 0, $sortBy = 'name', $sortOrder = 'asc')
+    public function getLecturers($search = null, $limit = 10, $offset = 0, $sortBy = 'position', $sortOrder = 'asc')
     {
         $db = \Config\Database::connect();
 
+        // Build the base query
         $sql = "SELECT * FROM lecturers WHERE 1=1";
         $params = [];
 
+        // Apply search filter
         if (!empty($search)) {
             $sql .= " AND (name LIKE ? OR nip LIKE ? OR position LIKE ? OR study_program LIKE ?)";
             $searchParam = "%{$search}%";
             $params = array_merge($params, [$searchParam, $searchParam, $searchParam, $searchParam]);
         }
 
+        // Get total count for pagination
         $countSql = str_replace("SELECT *", "SELECT COUNT(*) as total", $sql);
         $totalResult = $db->query($countSql, $params)->getRow();
         $total = $totalResult->total;
 
-        $validSortColumns = ['name', 'nip', 'position', 'study_program'];
-        $validSortOrders = ['asc', 'desc'];
+        // Handle sorting
+        if ($sortBy === 'position') {
+            // Use hierarchical position sorting
+            $lecturers = $this->getPositionSortedLecturers($sql, $params, $sortOrder, $limit, $offset);
+        } else {
+            // Standard sorting for other columns
+            $validSortColumns = ['name', 'nip', 'study_program'];
+            $validSortOrders = ['asc', 'desc'];
 
-        if (in_array($sortBy, $validSortColumns) && in_array($sortOrder, $validSortOrders)) {
-            if ($sortBy === 'study_program') {
-                if ($sortOrder === 'asc') {
-                    $sql .= " ORDER BY study_program IS NULL, study_program ASC";
+            if (in_array($sortBy, $validSortColumns) && in_array($sortOrder, $validSortOrders)) {
+                if ($sortBy === 'study_program') {
+                    if ($sortOrder === 'asc') {
+                        $sql .= " ORDER BY study_program IS NULL, study_program ASC";
+                    } else {
+                        $sql .= " ORDER BY study_program IS NULL, study_program DESC";
+                    }
                 } else {
-                    $sql .= " ORDER BY study_program IS NULL, study_program DESC";
+                    $sql .= " ORDER BY {$sortBy} {$sortOrder}";
                 }
             } else {
-                $sql .= " ORDER BY {$sortBy} {$sortOrder}";
+                $sql .= " ORDER BY name ASC";
             }
-        } else {
-            $sql .= " ORDER BY name ASC";
+
+            $sql .= " LIMIT ? OFFSET ?";
+            $params = array_merge($params, [$limit, $offset]);
+            $lecturers = $db->query($sql, $params)->getResultArray();
         }
-
-        $sql .= " LIMIT ? OFFSET ?";
-        $params = array_merge($params, [$limit, $offset]);
-
-        $lecturers = $db->query($sql, $params)->getResultArray();
 
         return [
             'lecturers' => $lecturers,
             'total' => $total
         ];
+    }
+
+    /**
+     * Get lecturers sorted by position hierarchy
+     */
+    private function getPositionSortedLecturers($baseSql, $baseParams, $sortOrder, $limit, $offset)
+    {
+        $db = \Config\Database::connect();
+
+        // Get all matching records first
+        $allLecturers = $db->query($baseSql, $baseParams)->getResultArray();
+
+        // Sort by position hierarchy
+        usort($allLecturers, function ($a, $b) use ($sortOrder) {
+            $aPos = array_search($a['position'], $this->positions);
+            $bPos = array_search($b['position'], $this->positions);
+
+            // If position not found in hierarchy, put at end
+            $aPos = $aPos === false ? count($this->positions) : $aPos;
+            $bPos = $bPos === false ? count($this->positions) : $bPos;
+
+            // Primary sort by position hierarchy
+            if ($aPos !== $bPos) {
+                if ($sortOrder === 'asc') {
+                    return $aPos - $bPos;
+                } else {
+                    return $bPos - $aPos;
+                }
+            }
+
+            // Secondary sort by name if positions are the same
+            return strcmp($a['name'], $b['name']);
+        });
+
+        // Apply pagination
+        return array_slice($allLecturers, $offset, $limit);
+    }
+
+    /**
+     * Get position hierarchy order
+     */
+    public function getPositionHierarchy()
+    {
+        return $this->positions;
+    }
+
+    /**
+     * Get position order index
+     */
+    public function getPositionOrder($position)
+    {
+        $index = array_search($position, $this->positions);
+        return $index !== false ? $index : count($this->positions);
     }
 
     /**

@@ -26,14 +26,14 @@ class LecturerController extends BaseController
         $search = $this->request->getGet('search');
         $page = (int)($this->request->getGet('page') ?? 1);
         $perPage = (int)($this->request->getGet('per_page') ?? 10);
-        $sortBy = $this->request->getGet('sort_by') ?? 'name';
+        $sortBy = $this->request->getGet('sort_by') ?? 'position';
         $sortOrder = $this->request->getGet('sort_order') ?? 'asc';
 
         $allowedSortColumns = ['name', 'nip', 'position', 'study_program'];
         $allowedSortOrders = ['asc', 'desc'];
 
         if (!in_array($sortBy, $allowedSortColumns)) {
-            $sortBy = 'name';
+            $sortBy = 'position';
         }
 
         if (!in_array($sortOrder, $allowedSortOrders)) {
