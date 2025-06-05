@@ -37,9 +37,9 @@
                             <a href="<?= base_url('score/export-config') ?>" class="btn btn-sm btn-info">
                                 <i class="fas fa-download mr-1"></i> Export Konfigurasi
                             </a>
-                            <button type="button" class="btn btn-sm btn-warning" onclick="confirmReset()">
+                            <!-- <button type="button" class="btn btn-sm btn-warning" onclick="confirmReset()">
                                 <i class="fas fa-undo mr-1"></i> Reset ke Default
-                            </button>
+                            </button> -->
                         </div>
                     </div>
 
@@ -49,10 +49,6 @@
                             <div class="text-center py-5">
                                 <i class="fas fa-cog fa-3x text-muted mb-3"></i>
                                 <h4 class="text-muted">Belum Ada Konfigurasi Nilai</h4>
-                                <p class="text-muted">Mulai dengan menginisialisasi pengaturan nilai default.</p>
-                                <a href="<?= base_url('score/reset-to-default') ?>" class="btn btn-primary">
-                                    <i class="fas fa-plus mr-1"></i> Inisialisasi Pengaturan Default
-                                </a>
                             </div>
                         <?php else: ?>
                             <!-- Tab Navigation -->

@@ -65,6 +65,12 @@ class Navigation extends BaseConfig
             'roles' => ['admin', 'dekan'] // Restricted: Only admin and dekan
         ],
         [
+            'path' => '/semester',
+            'icon' => 'fas fa-calendar-alt',
+            'label' => 'Kelola Semester',
+            'roles' => ['admin', 'dekan'] // Admin and Dekan only
+        ],
+        [
             'path' => '/user',
             'icon' => 'fas fa-user-cog',
             'label' => 'Manajemen User',

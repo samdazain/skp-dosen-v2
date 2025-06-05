@@ -224,6 +224,7 @@ class UploadController extends BaseController
         return [
             'success' => $successCount > 0,
             'message' => $message,
+            'duplicates' => $duplicates,
             'errors' => $allErrors,
             'success_count' => $successCount,
             'error_count' => $errorCount
@@ -281,9 +282,8 @@ class UploadController extends BaseController
         // Validate position
         if (empty($data['position'])) {
             $errors[] = 'Jabatan harus diisi';
-        } elseif (!in_array($data['position'], $this->lecturerModel->getPositions())) {
-            $errors[] = 'Jabatan tidak valid';
         }
+        // Note: Position validation against array is removed to allow flexible positions
 
         // Validate study program for non-leadership positions
         if (!$isLeadership && !empty($data['study_program'])) {

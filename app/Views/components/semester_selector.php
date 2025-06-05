@@ -87,7 +87,7 @@ if (ENVIRONMENT === 'development') {
                     </a>
                 <?php endforeach; ?>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item d-flex align-items-center py-2 text-info" href="<?= base_url('semesters') ?>">
+                <a class="dropdown-item d-flex align-items-center py-2 text-info" href="<?= base_url('semester') ?>">
                     <i class="fas fa-cog mr-3 fa-lg"></i>
                     <span>Kelola Semester</span>
                 </a>

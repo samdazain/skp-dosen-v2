@@ -10,7 +10,13 @@
 <?= $this->section('content') ?>
 
 <!-- Content Header -->
-<?= view('skp/partials/header') ?>
+<?= view('components/content_header', [
+    'header_title' => 'Data Master SKP',
+    'breadcrumbs' => [
+        ['text' => 'Home', 'url' => 'skp'],
+        ['text' => 'SKP', 'active' => true]
+    ]
+]) ?>
 
 <!-- Main content -->
 <section class="content">
@@ -42,8 +48,7 @@
             </div>
         <?php endif; ?>
 
-        <!-- Semester Selector -->
-        <?= view('skp/partials/semester_selector') ?>
+
 
         <!-- Filters -->
         <?= view('skp/partials/filters') ?>

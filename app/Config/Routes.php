@@ -35,19 +35,28 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/settings', [AuthController::class, 'settings']);
     $routes->post('/change-password', [AuthController::class, 'changePassword']);
 
-    // Upload routes
-    $routes->group('upload', static function ($routes) {
-        $routes->post('dosen', 'UploadController::uploadDosen');
-        $routes->post('integritas', 'UploadController::uploadIntegritas');
-        $routes->post('disiplin', 'UploadController::uploadDisiplin');
-        $routes->post('pelayanan', 'UploadController::uploadPelayanan');
-    });
+    // // Upload routes
+    // $routes->group('upload', static function ($routes) {
+    //     $routes->post('dosen', 'UploadController::uploadDosen');
+    //     $routes->post('integritas', 'UploadController::uploadIntegritas');
+    //     $routes->post('disiplin', 'UploadController::uploadDisiplin');
+    //     $routes->post('pelayanan', 'UploadController::uploadPelayanan');
+    // });
 
-    // Semester Selection
+    // Semester Selection and Management
     $routes->group('semester', function ($routes) {
         $routes->get('/', 'SemesterController::index');
         $routes->get('current', 'SemesterController::current');
         $routes->match(['GET', 'POST'], 'change', 'SemesterController::change');
+
+        // CRUD operations (restricted to admin and dekan)
+        $routes->group('', ['filter' => 'role:admin,dekan'], function ($routes) {
+            $routes->get('create', 'SemesterController::create');
+            $routes->post('store', 'SemesterController::store');
+            $routes->get('edit/(:num)', 'SemesterController::edit/$1');
+            $routes->put('update/(:num)', 'SemesterController::update/$1');
+            $routes->delete('delete/(:num)', 'SemesterController::delete/$1');
+        });
     });
 
     // SKP
@@ -60,11 +69,11 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // Lecturer (CRUD)
     $routes->group('lecturers', static function ($routes) {
         $routes->get('', 'LecturerController::index');
-        $routes->get('create', 'LecturerController::create');
-        $routes->post('store', 'LecturerController::store');
-        $routes->get('edit/(:num)', 'LecturerController::edit/$1');
-        $routes->put('update/(:num)', 'LecturerController::update/$1');
-        $routes->delete('delete/(:num)', 'LecturerController::delete/$1');
+        // $routes->get('create', 'LecturerController::create');
+        // $routes->post('store', 'LecturerController::store');
+        // $routes->get('edit/(:num)', 'LecturerController::edit/$1');
+        // $routes->put('update/(:num)', 'LecturerController::update/$1');
+        // $routes->delete('delete/(:num)', 'LecturerController::delete/$1');
         // Tambahkan route export
         $routes->get('export-excel', 'LecturerController::exportExcel');
         $routes->get('export-pdf', 'LecturerController::exportPdf');
@@ -92,18 +101,18 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // Commitment
     $routes->group('commitment', static function ($routes) {
         $routes->get('', 'CommitmentController::index');
-        $routes->post('update-competency', 'CommitmentController::updateCompetency');
-        $routes->post('update-tridharma', 'CommitmentController::updateTriDharma');
+        // $routes->post('update-competency', 'CommitmentController::updateCompetency');
+        // $routes->post('update-tridharma', 'CommitmentController::updateTriDharma');
         $routes->get('export-excel', 'CommitmentController::exportExcel');
         $routes->get('export-pdf', 'CommitmentController::exportPdf');
-        $routes->post('bulk-update', 'CommitmentController::bulkUpdate');
+        // $routes->post('bulk-update', 'CommitmentController::bulkUpdate');
         $routes->get('recalculate-scores', 'CommitmentController::recalculateScores');
     });
 
     // Cooperation
     $routes->group('cooperation', static function ($routes) {
         $routes->get('', 'CooperationController::index');
-        $routes->post('update-level', 'CooperationController::updateCooperationLevel');
+        // $routes->post('update-level', 'CooperationController::updateCooperationLevel');
         $routes->get('export-excel', 'CooperationController::exportExcel');
         $routes->get('export-pdf', 'CooperationController::exportPdf');
     });
@@ -111,13 +120,50 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     // Orientation
     $routes->group('orientation', static function ($routes) {
         $routes->get('', 'OrientationController::index');
-        $routes->post('update-score', 'OrientationController::updateScore');
+        // $routes->post('update-score', 'OrientationController::updateScore');
         $routes->get('export-excel', 'OrientationController::exportExcel');
         $routes->get('export-pdf', 'OrientationController::exportPdf');
     });
 
     // Admin Only Routes
-    $routes->group('', ['filter' => 'role:admin'], static function ($routes) {
+    $routes->group('', ['filter' => 'role:admin, dekan, wadek2, kaprodi'], static function ($routes) {
+        // Upload routes
+        $routes->group('upload', static function ($routes) {
+            $routes->post('dosen', 'UploadController::uploadDosen');
+            $routes->post('integritas', 'UploadController::uploadIntegritas');
+            $routes->post('disiplin', 'UploadController::uploadDisiplin');
+            $routes->post('pelayanan', 'UploadController::uploadPelayanan');
+        });
+
+        // Lecturer (CRUD)
+        $routes->group('lecturers', static function ($routes) {
+            $routes->get('create', 'LecturerController::create');
+            $routes->post('store', 'LecturerController::store');
+            $routes->get('edit/(:num)', 'LecturerController::edit/$1');
+            $routes->put('update/(:num)', 'LecturerController::update/$1');
+            $routes->delete('delete/(:num)', 'LecturerController::delete/$1');
+        });
+
+        // Commitment
+        $routes->group('commitment', static function ($routes) {
+            $routes->post('update-competency', 'CommitmentController::updateCompetency');
+            $routes->post('update-tridharma', 'CommitmentController::updateTriDharma');
+            $routes->get('filter-by-role/(:segment)', 'CommitmentController::filterByRole/$1');
+            $routes->get('filter-by-prodi/(:segment)', 'CommitmentController::filterByProdi/$1');
+        });
+
+        // Cooperation
+        $routes->group('cooperation', static function ($routes) {
+            $routes->post('update-level', 'CooperationController::updateCooperationLevel');
+            $routes->get('filter-by-role/(:segment)', 'CooperationController::filterByRole/$1');
+            $routes->get('filter-by-prodi/(:segment)', 'CooperationController::filterByProdi/$1');
+        });
+
+        // Orientation
+        $routes->group('orientation', static function ($routes) {
+            $routes->post('update-score', 'OrientationController::updateScore');
+        });
+
         // Score Config (Admin only)
         $routes->group('score', static function ($routes) {
             $routes->get('', 'ScoreController::index');

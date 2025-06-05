@@ -59,7 +59,7 @@
         <?php if (session()->get('errors')): ?>
             <div class="row">
                 <div class="col-12">
-                    <div class="alert alert-warning alert-dismissible fade show">
+                    <div class="alert alert-warning alert-dismissible fade show" id="errorAlert">
                         <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                             <span aria-hidden="true">&times;</span>
                         </button>
@@ -76,6 +76,11 @@
                                 <i class="fas fa-info-circle"></i>
                                 Silakan periksa format data pada file Excel dan coba upload ulang untuk data yang gagal.
                             </small>
+                        </div>
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="removeWarning()">
+                                <i class="fas fa-times"></i> Remove Warning
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -176,9 +181,7 @@
 <script>
     $(document).ready(function() {
         // Auto-hide alerts after 5 seconds
-        setTimeout(function() {
-            $('.alert').fadeOut('slow');
-        }, 5000);
+        // Timer removed - using manual remove action button instead
 
         // Add smooth animation to alerts
         $('.alert').addClass('animated fadeIn');

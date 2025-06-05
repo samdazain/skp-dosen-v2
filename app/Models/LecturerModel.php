@@ -96,7 +96,7 @@ class LecturerModel extends Model
         $rules = [
             'nip' => 'required|min_length[10]|max_length[30]|is_unique[lecturers.nip,id,' . ($id ?? 'NULL') . ']',
             'name' => 'required|min_length[3]|max_length[100]',
-            'position' => 'required|in_list[' . implode(',', $this->positions) . ']'
+            'position' => 'required[' . implode(',', $this->positions) . ']'
         ];
 
         if (!$isLeadership && !$skipStudyProgram) {

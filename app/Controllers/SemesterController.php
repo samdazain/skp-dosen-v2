@@ -40,8 +40,9 @@ class SemesterController extends BaseController
         }
 
         return view('semester/index', [
-            'pageTitle' => 'Daftar Semester | SKP Dosen',
-            'semesters' => $semesters
+            'pageTitle' => 'Kelola Semester | SKP Dosen',
+            'semesters' => $semesters,
+            'activeSemester' => $activeSemester
         ]);
     }
 
@@ -171,7 +172,7 @@ class SemesterController extends BaseController
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
-        return view('semesters/create', [
+        return view('semester/create', [
             'pageTitle' => 'Tambah Semester | SKP Dosen',
             'validation' => \Config\Services::validation()
         ]);
@@ -222,7 +223,7 @@ class SemesterController extends BaseController
 
         try {
             $this->semesterModel->insert($data);
-            return redirect()->to('semesters')
+            return redirect()->to('semester')
                 ->with('success', 'Semester berhasil ditambahkan');
         } catch (\Exception $e) {
             return redirect()->back()
@@ -239,10 +240,10 @@ class SemesterController extends BaseController
 
         $semester = $this->semesterModel->find($id);
         if (!$semester) {
-            return redirect()->to('semesters')->with('error', 'Semester tidak ditemukan');
+            return redirect()->to('semester')->with('error', 'Semester tidak ditemukan');
         }
 
-        return view('semesters/edit', [
+        return view('semester/edit', [
             'pageTitle' => 'Edit Semester | SKP Dosen',
             'semester' => $semester,
             'validation' => \Config\Services::validation()
@@ -257,7 +258,7 @@ class SemesterController extends BaseController
 
         $semester = $this->semesterModel->find($id);
         if (!$semester) {
-            return redirect()->to('semesters')->with('error', 'Semester tidak ditemukan');
+            return redirect()->to('semester')->with('error', 'Semester tidak ditemukan');
         }
 
         $rules = [
@@ -299,7 +300,14 @@ class SemesterController extends BaseController
 
         try {
             $this->semesterModel->update($id, $data);
-            return redirect()->to('semesters')
+
+            // Update session if this is the active semester
+            if (session()->get('activeSemesterId') == $id) {
+                $updatedSemester = $this->semesterModel->find($id);
+                session()->set('activeSemesterText', $this->semesterModel->formatSemester($updatedSemester));
+            }
+
+            return redirect()->to('semester')
                 ->with('success', 'Semester berhasil diperbarui');
         } catch (\Exception $e) {
             return redirect()->back()
@@ -316,20 +324,20 @@ class SemesterController extends BaseController
 
         $semester = $this->semesterModel->find($id);
         if (!$semester) {
-            return redirect()->to('semesters')->with('error', 'Semester tidak ditemukan');
+            return redirect()->to('semester')->with('error', 'Semester tidak ditemukan');
         }
 
         if ($this->semesterModel->isActiveSemester($id)) {
-            return redirect()->to('semesters')
+            return redirect()->to('semester')
                 ->with('error', 'Tidak dapat menghapus semester yang sedang aktif');
         }
 
         try {
             $this->semesterModel->delete($id);
-            return redirect()->to('semesters')
+            return redirect()->to('semester')
                 ->with('success', 'Semester berhasil dihapus');
         } catch (\Exception $e) {
-            return redirect()->to('semesters')
+            return redirect()->to('semester')
                 ->with('error', 'Gagal menghapus semester: ' . $e->getMessage());
         }
     }

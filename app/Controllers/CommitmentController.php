@@ -25,6 +25,9 @@ class CommitmentController extends BaseController
             return redirect()->to('login')->with('error', 'Silakan login terlebih dahulu');
         }
 
+        // Load role helper for permissions
+        helper('role');
+
         $userData = [
             'name' => session()->get('user_name'),
             'role' => session()->get('user_role'),
@@ -57,15 +60,19 @@ class CommitmentController extends BaseController
             session()->setFlashdata('warning', 'Terjadi masalah saat menghitung ulang skor komitmen secara otomatis: ' . $e->getMessage());
         }
 
-        $filters = array_filter([
+        // Get user filters from request
+        $userFilters = array_filter([
             'position' => $this->request->getGet('position'),
             'study_program' => $this->request->getGet('study_program'),
             'competence' => $this->request->getGet('competence'),
             'tridharma' => $this->request->getGet('tridharma')
         ]);
 
+        // Apply role-based study program filtering
+        $filters = apply_study_program_filter($userFilters);
+
         try {
-            // Get all lecturers with their commitment data
+            // Get all lecturers with their commitment data (filtered by role)
             $lecturersData = $this->commitmentModel->getAllLecturersWithCommitment($currentSemester['id'], $filters);
 
             // Get statistics
@@ -74,6 +81,10 @@ class CommitmentController extends BaseController
             // Get all semesters for semester selector
             $semesters = $this->semesterModel->getAllSemesters();
 
+            // Check if user is restricted to specific study program
+            $isStudyProgramRestricted = !can_manage_all_lecturers();
+            $userStudyProgram = get_user_study_program_filter();
+
             return view('commitment/index', [
                 'pageTitle' => 'Data Komitmen | SKP Dosen',
                 'user' => $userData,
@@ -81,12 +92,14 @@ class CommitmentController extends BaseController
                 'stats' => $stats,
                 'currentSemester' => $currentSemester,
                 'semesters' => $semesters,
-                'filters' => $filters,
+                'filters' => $userFilters, // Original user filters for form state
                 'autoPopulationResult' => [
                     'added' => $addedCount ?? 0,
                     'updated' => $updatedCount ?? 0,
                     'timestamp' => date('Y-m-d H:i:s')
-                ]
+                ],
+                'isStudyProgramRestricted' => $isStudyProgramRestricted,
+                'userStudyProgram' => $userStudyProgram
             ]);
         } catch (\Exception $e) {
             log_message('error', 'Error loading commitment data: ' . $e->getMessage());
@@ -138,6 +151,15 @@ class CommitmentController extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Dosen tidak ditemukan']);
             }
             return redirect()->to('commitment')->with('error', 'Dosen tidak ditemukan');
+        }
+
+        // Check if user can update this lecturer's data
+        helper('role');
+        if (!can_update_lecturer_score($lecturer['study_program'])) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mengubah data dosen ini']);
+            }
+            return redirect()->to('commitment')->with('error', 'Anda tidak memiliki akses untuk mengubah data dosen ini');
         }
 
         $currentSemester = $this->semesterModel->getCurrentSemester();
@@ -218,6 +240,15 @@ class CommitmentController extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Dosen tidak ditemukan']);
             }
             return redirect()->to('commitment')->with('error', 'Dosen tidak ditemukan');
+        }
+
+        // Check if user can update this lecturer's data
+        helper('role');
+        if (!can_update_lecturer_score($lecturer['study_program'])) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mengubah data dosen ini']);
+            }
+            return redirect()->to('commitment')->with('error', 'Anda tidak memiliki akses untuk mengubah data dosen ini');
         }
 
         $currentSemester = $this->semesterModel->getCurrentSemester();

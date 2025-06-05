@@ -14,9 +14,9 @@
                 <button type="button" class="btn btn-sm btn-info" onclick="refreshCommitmentData()">
                     <i class="fas fa-sync-alt mr-1"></i> Refresh Data
                 </button>
-                <a href="<?= base_url('commitment/recalculate-scores') ?>" class="btn btn-sm btn-warning">
+                <!-- <a href="<?= base_url('commitment/recalculate-scores') ?>" class="btn btn-sm btn-warning">
                     <i class="fas fa-calculator mr-1"></i> Hitung Ulang Semua
-                </a>
+                </a> -->
             </div>
             <div class="input-group input-group-sm ml-3 pt-1 float-right" style="width: 250px;">
                 <input type="text" name="table_search" class="form-control float-right" id="searchInput"

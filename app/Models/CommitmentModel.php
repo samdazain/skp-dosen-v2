@@ -112,6 +112,10 @@ class CommitmentModel extends Model
      */
     public function getAllLecturersWithCommitment($semesterId, $filters = [])
     {
+        // Apply study program filter based on user role
+        helper('role');
+        $filters = apply_study_program_filter($filters);
+
         // ALWAYS ensure auto-population happens first
         try {
             $addedCount = $this->autoPopulateCommitmentData($semesterId);
@@ -182,7 +186,7 @@ class CommitmentModel extends Model
         $sql .= ' ORDER BY l.name ASC';
 
         log_message('debug', "Executing query with semester_id: {$semesterId}");
-        log_message('debug', "SQL: " . $sql);
+        log_message('debug', "Applied filters: " . json_encode($filters));
 
         $result = $db->query($sql, $params)->getResultArray();
 
@@ -192,10 +196,21 @@ class CommitmentModel extends Model
     }
 
     /**
-     * Calculate commitment score based on competence and tri dharma status
-     * ALWAYS uses database values - no fallbacks
-     * Enhanced to properly format values for score lookup
+     * Check if user can update commitment for a specific lecturer
      */
+    public function canUpdateLecturerCommitment($lecturerId)
+    {
+        helper('role');
+
+        // Get lecturer details
+        $lecturer = $this->lecturerModel->find($lecturerId);
+        if (!$lecturer) {
+            return false;
+        }
+
+        return can_update_lecturer_score($lecturer['study_program']);
+    }
+
     public function calculateCommitmentScore($competence, $triDharmaPass)
     {
         try {
@@ -230,11 +245,15 @@ class CommitmentModel extends Model
     }
 
     /**
-     * Update competency status with immediate score calculation and database update
-     * Enhanced with proper verification
+     * Update competency status with role-based access control
      */
     public function updateCompetency($lecturerId, $semesterId, $competence, $updatedBy = null)
     {
+        // Check permissions first
+        if (!$this->canUpdateLecturerCommitment($lecturerId)) {
+            throw new \Exception('Anda tidak memiliki akses untuk mengubah data dosen ini');
+        }
+
         log_message('info', "Starting updateCompetency for lecturer {$lecturerId}, semester {$semesterId}, competence: {$competence}");
 
         $competenceValue = ($competence === 'active' || $competence === true || $competence === '1') ? 'active' : 'inactive';
@@ -306,11 +325,15 @@ class CommitmentModel extends Model
     }
 
     /**
-     * Update Tri Dharma status with immediate score calculation and database update
-     * Enhanced with proper verification
+     * Update Tri Dharma status with role-based access control
      */
     public function updateTriDharma($lecturerId, $semesterId, $triDharmaPass, $updatedBy = null)
     {
+        // Check permissions first
+        if (!$this->canUpdateLecturerCommitment($lecturerId)) {
+            throw new \Exception('Anda tidak memiliki akses untuk mengubah data dosen ini');
+        }
+
         log_message('info', "Starting updateTriDharma for lecturer {$lecturerId}, semester {$semesterId}, tridharma: {$triDharmaPass}");
 
         $triDharmaValue = ($triDharmaPass === true || $triDharmaPass === '1' || $triDharmaPass === 1) ? 1 : 0;
