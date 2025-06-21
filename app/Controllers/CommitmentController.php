@@ -153,11 +153,31 @@ class CommitmentController extends BaseController
             return redirect()->to('commitment')->with('error', 'Dosen tidak ditemukan');
         }
 
+        // Convert to array if it's an object
+        if (is_object($lecturer)) {
+            $lecturer = $lecturer->toArray();
+        }
+
         // Check if user can update this lecturer's data
         helper('role');
-        if (!can_update_lecturer_score($lecturer['study_program'])) {
+
+        $lecturerStudyProgram = $lecturer['study_program'];
+
+        // Debug: Add study program information to response
+        $debugInfo = [
+            'lecturer_study_program' => $lecturer['study_program'],
+            'user_role' => session()->get('user_role'),
+            'user_study_program' => get_user_study_program_filter(),
+            'can_update' => can_update_lecturer_score($lecturerStudyProgram)
+        ];
+
+        if (!can_update_lecturer_score($lecturerStudyProgram)) {
             if ($this->request->isAJAX()) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Anda tidak memiliki akses untuk mengubah data dosen ini']);
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk mengubah data dosen ini',
+                    'debug' => $debugInfo
+                ]);
             }
             return redirect()->to('commitment')->with('error', 'Anda tidak memiliki akses untuk mengubah data dosen ini');
         }
@@ -240,6 +260,11 @@ class CommitmentController extends BaseController
                 return $this->response->setJSON(['success' => false, 'message' => 'Dosen tidak ditemukan']);
             }
             return redirect()->to('commitment')->with('error', 'Dosen tidak ditemukan');
+        }
+
+        // Convert to array if it's an object
+        if (is_object($lecturer)) {
+            $lecturer = $lecturer->toArray();
         }
 
         // Check if user can update this lecturer's data

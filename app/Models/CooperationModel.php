@@ -291,12 +291,43 @@ class CooperationModel extends Model
         }
     }
 
+    public function canUpdateLecturerCooperation($lecturerId)
+    {
+        helper('role');
+
+        // Get lecturer details
+        $lecturer = $this->lecturerModel->find($lecturerId);
+        if (!$lecturer) {
+            return false;
+        }
+
+        return can_update_lecturer_score($lecturer['study_program']);
+    }
+
+
     /**
-     * Update cooperation level with immediate score calculation and database update
-     * Enhanced with proper error handling
+     * Update cooperation level with role-based access control
      */
     public function updateCooperationLevel($lecturerId, $semesterId, $level, $updatedBy = null)
     {
+        // Check permissions first
+        if (!$this->canUpdateLecturerCooperation($lecturerId)) {
+            // Get lecturer info for debug
+            $lecturer = $this->lecturerModel->find($lecturerId);
+            $lecturerStudyProgram = $lecturer ? $lecturer['study_program'] : 'unknown';
+
+            $debugInfo = [
+                'lecturer_id' => $lecturerId,
+                'lecturer_study_program' => $lecturerStudyProgram,
+                'user_role' => session()->get('user_role'),
+                'user_study_program' => session()->get('user_study_program'),
+                'reason' => 'Role-based access control failed'
+            ];
+
+            log_message('warning', 'Cooperation access denied: ' . json_encode($debugInfo));
+            throw new \Exception('Anda tidak memiliki akses untuk mengubah data dosen ini');
+        }
+
         log_message('info', "Starting updateCooperationLevel for lecturer {$lecturerId}, semester {$semesterId}, level: {$level}");
 
         // Validate level

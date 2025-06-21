@@ -12,6 +12,8 @@ class CooperationController extends BaseController
     protected $semesterModel;
     protected $scoreModel;
 
+    protected $returnType = 'object';
+
     public function __construct()
     {
         $this->cooperationModel = new CooperationModel();
@@ -150,6 +152,39 @@ class CooperationController extends BaseController
             return redirect()->to('cooperation')->with('error', 'Dosen tidak ditemukan');
         }
 
+
+        // Convert to array if it's an object
+        if (is_object($lecturer)) {
+            $lecturer = $lecturer->toArray();
+        }
+
+        // Check if user can update this lecturer's data
+        helper('role');
+
+        $lecturerStudyProgram = $lecturer['study_program'];
+
+        // Debug: Tambahkan informasi study program ke response
+        $debugInfo = [
+            'lecturer_study_program' =>  $lecturer['study_program'],
+            'user_role' => session()->get('user_role'),
+            'user_study_program' => session()->get('user_study_program'),
+            'can_update' => can_update_lecturer_score($lecturerStudyProgram)
+        ];
+
+        // Modifikasi fungsi can_update_lecturer_score agar hanya mengizinkan update jika:
+        // - User memiliki role 'kaprodi'
+        // - User memiliki study program yang sama dengan lecturer
+        if (!can_update_lecturer_score($lecturerStudyProgram)) {
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Anda tidak memiliki akses untuk mengubah data dosen ini',
+                    'debug' => $debugInfo
+                ]);
+            }
+            return redirect()->to('cooperation')->with('error', 'Anda tidak memiliki akses untuk mengubah data dosen ini');
+        }
+
         $currentSemester = $this->semesterModel->getCurrentSemester();
         if (!$currentSemester) {
             if ($this->request->isAJAX()) {
@@ -179,14 +214,21 @@ class CooperationController extends BaseController
                     'success' => true,
                     'message' => 'Tingkat kerja sama berhasil diperbarui',
                     'new_score' => $newScore,
-                    'level' => $level
+                    'level' => $level,
+                    'debug' => array_merge($debugInfo, ['action' => 'update_successful'])
                 ]);
             }
 
             return redirect()->to('cooperation')->with('success', 'Tingkat kerja sama berhasil diperbarui');
         } catch (\Exception $e) {
+            log_message('error', 'Error updating cooperation level: ' . $e->getMessage());
+
             if ($this->request->isAJAX()) {
-                return $this->response->setJSON(['success' => false, 'message' => 'Kesalahan: ' . $e->getMessage()]);
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Kesalahan: ' . $e->getMessage(),
+                    'debug' => array_merge($debugInfo, ['error' => $e->getMessage()])
+                ]);
             }
             return redirect()->to('cooperation')->with('error', 'Kesalahan: ' . $e->getMessage());
         }

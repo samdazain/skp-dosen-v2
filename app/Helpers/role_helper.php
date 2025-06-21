@@ -82,7 +82,7 @@ if (!function_exists('can_update_lecturer_score')) {
     function can_update_lecturer_score($lecturerStudyProgram)
     {
         $userRole = session()->get('user_role');
-        $userStudyProgram = session()->get('user_study_program');
+        $userStudyProgram = strtolower(session()->get('user_study_program'));
 
         // Admin, Dekan, and Wadek can update all lecturers
         if (can_manage_all_lecturers($userRole)) {
