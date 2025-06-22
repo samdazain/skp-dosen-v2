@@ -4,6 +4,7 @@ use CodeIgniter\Router\RouteCollection;
 use App\Controllers\AuthController;
 use App\Controllers\DashboardController;
 use App\Controllers\TestDBConnection;
+// use App\Controllers\DataUploadController;
 
 
 /**
@@ -34,14 +35,6 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
     $routes->get('/dashboard', [DashboardController::class, 'index']);
     $routes->get('/settings', [AuthController::class, 'settings']);
     $routes->post('/change-password', [AuthController::class, 'changePassword']);
-
-    // // Upload routes
-    // $routes->group('upload', static function ($routes) {
-    //     $routes->post('dosen', 'UploadController::uploadDosen');
-    //     $routes->post('integritas', 'UploadController::uploadIntegritas');
-    //     $routes->post('disiplin', 'UploadController::uploadDisiplin');
-    //     $routes->post('pelayanan', 'UploadController::uploadPelayanan');
-    // });
 
     // Semester Selection and Management
     $routes->group('semester', function ($routes) {
@@ -130,9 +123,9 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         // Upload routes
         $routes->group('upload', static function ($routes) {
             $routes->post('dosen', 'UploadController::uploadDosen');
-            $routes->post('integritas', 'UploadController::uploadIntegritas');
-            $routes->post('disiplin', 'UploadController::uploadDisiplin');
-            $routes->post('pelayanan', 'UploadController::uploadPelayanan');
+            $routes->post('integritas', 'DataUploadController::uploadIntegritas');
+            $routes->post('disiplin', 'DataUploadController::uploadDisiplin');
+            $routes->post('pelayanan', 'DataUploadController::uploadPelayanan');
         });
 
         // Lecturer (CRUD)

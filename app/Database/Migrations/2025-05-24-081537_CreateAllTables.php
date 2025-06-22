@@ -80,6 +80,7 @@ class CreateAllTables extends Migration
             'courses_taught' => ['type' => 'TINYINT'],
             'score'         => ['type' => 'TINYINT'],
             'updated_by'    => ['type' => 'INT', 'null' => true],
+            'created_at'    => ['type' => 'DATETIME', 'null' => true],
             'updated_at'    => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
@@ -97,6 +98,7 @@ class CreateAllTables extends Migration
             'ceremony_absence' => ['type' => 'TINYINT'],
             'score'            => ['type' => 'TINYINT'],
             'updated_by'       => ['type' => 'INT', 'null' => true],
+            'created_at'       => ['type' => 'DATETIME', 'null' => true],
             'updated_at'       => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);
@@ -144,6 +146,7 @@ class CreateAllTables extends Migration
             'questionnaire_score' => ['type' => 'FLOAT'],
             'score'             => ['type' => 'TINYINT'],
             'updated_by'        => ['type' => 'INT', 'null' => true],
+            'created_at'        => ['type' => 'DATETIME', 'null' => true],
             'updated_at'        => ['type' => 'DATETIME', 'null' => true],
         ]);
         $this->forge->addKey('id', true);

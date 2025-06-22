@@ -53,9 +53,7 @@
                     </div>
                 </div>
             </div>
-        <?php endif; ?>
-
-        <!-- Display Upload Results with Details -->
+        <?php endif; ?>        <!-- Display Upload Results with Details -->
         <?php if (session()->get('errors')): ?>
             <div class="row">
                 <div class="col-12">
@@ -74,6 +72,7 @@
                         <div class="mt-2">
                             <small class="text-muted">
                                 <i class="fas fa-info-circle"></i>
+                                Data yang gagal diproses tidak akan memengaruhi data yang berhasil diupload. 
                                 Silakan periksa format data pada file Excel dan coba upload ulang untuk data yang gagal.
                             </small>
                         </div>

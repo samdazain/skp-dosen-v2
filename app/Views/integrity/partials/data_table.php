@@ -46,7 +46,7 @@
                     <th class="text-center">Kehadiran Mengajar</th>
                     <th class="text-center">Jumlah MK di Ampu</th>
                     <th class="text-center">Skor Integritas</th>
-                    <th class="text-center">Status</th>
+                    <!-- <th class="text-center">Status</th> -->
                 </tr>
             </thead>
             <tbody>
@@ -79,24 +79,24 @@
                                 <?= (int)$data['courses_taught'] ?>
                             </td>
                             <td class="text-center">
-                                <span class="badge badge-lg font-weight-bold">
-                                    <?= (int)$data['score'] ?>
+                                <span class="badge badge-lg font-weight-bold" style="font-size: 1.1em;"></span>
+                                <?= (int)$data['score'] ?>
                                 </span>
                             </td>
-                            <td class="text-center">
-                                <?php
-                                $score = (int)$data['score'];
-                                if ($score >= 88) {
-                                    echo '<span class="badge badge-success">Sangat Baik</span>';
-                                } elseif ($score >= 75) {
-                                    echo '<span class="badge badge-primary">Baik</span>';
-                                } elseif ($score >= 61) {
-                                    echo '<span class="badge badge-warning">Cukup</span>';
-                                } else {
-                                    echo '<span class="badge badge-danger">Kurang</span>';
-                                }
-                                ?>
-                            </td>
+                            <!-- <td class="text-center"> -->
+                            <?php
+                            // $score = (int)$data['score'];
+                            // if ($score >= 88) {
+                            //     echo '<span class="badge badge-success">Sangat Baik</span>';
+                            // } elseif ($score >= 75) {
+                            //     echo '<span class="badge badge-primary">Baik</span>';
+                            // } elseif ($score >= 61) {
+                            //     echo '<span class="badge badge-warning">Cukup</span>';
+                            // } else {
+                            //     echo '<span class="badge badge-danger">Kurang</span>';
+                            // }
+                            ?>
+                            <!-- </td> -->
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
