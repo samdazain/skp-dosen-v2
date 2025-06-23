@@ -179,7 +179,8 @@
 
     function updateDropdownStyle($select, value) {
         // Remove all color classes
-        $select.removeClass('border-danger border-warning border-info border-success text-danger text-warning text-info text-success');
+        $select.removeClass(
+            'border-danger border-warning border-info border-success text-danger text-warning text-info text-success');
 
         // Apply color based on cooperation level
         switch (value) {
