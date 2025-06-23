@@ -72,7 +72,7 @@
                     <th class="text-center">Kerjasama</th>
                     <th class="text-center">Orientasi Pelayanan</th>
                     <th class="text-center">Nilai SKP</th>
-                    <th class="text-center">Kategori</th>
+                    <!-- <th class="text-center">Kategori</th> -->
                 </tr>
             </thead>
             <tbody>
@@ -83,27 +83,27 @@
                         $category = $lecturer['skp_category'];
 
                         // Get score and category styling
-                        if ($skpScore >= 88) {
-                            $scoreClass = 'text-success font-weight-bold';
-                            $badgeClass = 'badge-success';
-                            $progressClass = 'bg-success';
-                            $progressWidth = min(100, ($skpScore / 100) * 100);
-                        } elseif ($skpScore >= 76) {
-                            $scoreClass = 'text-primary font-weight-bold';
-                            $badgeClass = 'badge-primary';
-                            $progressClass = 'bg-primary';
-                            $progressWidth = min(100, ($skpScore / 100) * 100);
-                        } elseif ($skpScore >= 61) {
-                            $scoreClass = 'text-warning font-weight-bold';
-                            $badgeClass = 'badge-warning';
-                            $progressClass = 'bg-warning';
-                            $progressWidth = min(100, ($skpScore / 100) * 100);
-                        } else {
-                            $scoreClass = 'text-danger font-weight-bold';
-                            $badgeClass = 'badge-danger';
-                            $progressClass = 'bg-danger';
-                            $progressWidth = min(100, max(10, ($skpScore / 100) * 100));
-                        }
+                        // if ($skpScore >= 88) {
+                        //     $scoreClass = 'text-success font-weight-bold';
+                        //     $badgeClass = 'badge-success';
+                        //     $progressClass = 'bg-success';
+                        //     $progressWidth = min(100, ($skpScore / 100) * 100);
+                        // } elseif ($skpScore >= 76) {
+                        //     $scoreClass = 'text-primary font-weight-bold';
+                        //     $badgeClass = 'badge-primary';
+                        //     $progressClass = 'bg-primary';
+                        //     $progressWidth = min(100, ($skpScore / 100) * 100);
+                        // } elseif ($skpScore >= 61) {
+                        //     $scoreClass = 'text-warning font-weight-bold';
+                        //     $badgeClass = 'badge-warning';
+                        //     $progressClass = 'bg-warning';
+                        //     $progressWidth = min(100, ($skpScore / 100) * 100);
+                        // } else {
+                        //     $scoreClass = 'text-danger font-weight-bold';
+                        //     $badgeClass = 'badge-danger';
+                        //     $progressClass = 'bg-danger';
+                        //     $progressWidth = min(100, max(10, ($skpScore / 100) * 100));
+                        // }
 
                         // Format program study
                         $programStudyLabel = match ($lecturer['study_program']) {
@@ -173,21 +173,10 @@
                             </td>
                             <td class="text-center align-middle">
                                 <div class="skp-score-container">
-                                    <div class="skp-score <?= $scoreClass ?>" data-toggle="tooltip"
-                                        title="Nilai SKP: <?= number_format($skpScore, 1) ?>">
+                                    <div data-toggle="tooltip" title="Nilai SKP: <?= number_format($skpScore, 1) ?>">
                                         <?= number_format($skpScore, 1) ?>
                                     </div>
-                                    <div class="progress mt-1" style="height: 4px;">
-                                        <div class="progress-bar <?= $progressClass ?> progress-bar-animated"
-                                            style="width: <?= $progressWidth ?>%"></div>
-                                    </div>
                                 </div>
-                            </td>
-                            <td class="text-center align-middle">
-                                <span class="badge <?= $badgeClass ?> category-badge" data-toggle="tooltip"
-                                    title="Kategori: <?= esc($category) ?>">
-                                    <?= esc($category) ?>
-                                </span>
                             </td>
                         </tr>
                     <?php endforeach; ?>

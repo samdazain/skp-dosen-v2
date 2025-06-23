@@ -2,14 +2,14 @@
 
 namespace App\Controllers;
 
-use App\Models\DataUploadModel;
+use App\Models\IntegrityDataUploadModel;
 use App\Models\LecturerModel;
 use App\Models\IntegrityModel;
 use App\Models\SemesterModel;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use CodeIgniter\HTTP\ResponseInterface;
 
-class DataUploadController extends BaseController
+class IntegrityDataUploadController extends BaseController
 {
     protected $dataUploadModel;
     protected $lecturerModel;
@@ -18,7 +18,7 @@ class DataUploadController extends BaseController
 
     public function __construct()
     {
-        $this->dataUploadModel = new DataUploadModel();
+        $this->dataUploadModel = new IntegrityDataUploadModel();
         $this->lecturerModel = new LecturerModel();
         $this->integrityModel = new IntegrityModel();
         $this->semesterModel = new SemesterModel();

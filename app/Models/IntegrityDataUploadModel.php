@@ -4,7 +4,7 @@ namespace App\Models;
 
 use CodeIgniter\Model;
 
-class DataUploadModel extends Model
+class IntegrityDataUploadModel extends Model
 {
     protected $DBGroup          = 'default';
     protected $table            = 'integrity'; // Default table, will vary

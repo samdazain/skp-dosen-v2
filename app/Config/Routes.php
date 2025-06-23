@@ -123,7 +123,7 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         // Upload routes
         $routes->group('upload', static function ($routes) {
             $routes->post('dosen', 'UploadController::uploadDosen');
-            $routes->post('integritas', 'DataUploadController::uploadIntegritas');
+            $routes->post('integritas', 'IntegrityDataUploadController::uploadIntegritas');
             $routes->post('disiplin', 'DataUploadController::uploadDisiplin');
             $routes->post('pelayanan', 'DataUploadController::uploadPelayanan');
         });
