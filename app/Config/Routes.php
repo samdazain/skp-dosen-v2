@@ -124,8 +124,8 @@ $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->group('upload', static function ($routes) {
             $routes->post('dosen', 'UploadController::uploadDosen');
             $routes->post('integritas', 'IntegrityDataUploadController::uploadIntegritas');
-            $routes->post('disiplin', 'DataUploadController::uploadDisiplin');
-            $routes->post('pelayanan', 'DataUploadController::uploadPelayanan');
+            $routes->post('disiplin', 'DisciplineDataUploadController::uploadDisiplin');
+            $routes->post('pelayanan', 'OrientationDataUploadController::uploadPelayanan');
         });
 
         // Lecturer (CRUD)
